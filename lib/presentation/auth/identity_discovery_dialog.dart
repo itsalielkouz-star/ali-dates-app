@@ -152,6 +152,7 @@ class _IdentityDiscoveryDialogState extends State<IdentityDiscoveryDialog> {
                             child: Text(
                               _nameController.text,
                               textAlign: TextAlign.end,
+                              textDirection: TextDirection.rtl,
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,

@@ -80,13 +80,9 @@ class PhoneUtils {
     return normalize(rawPhone);
   }
 
-  /// Returns nicely formatted display string (079 545 7988)
+  /// Returns clean local format (0796611533)
   static String toDisplay(String rawPhone) {
-    final norm = normalize(rawPhone);
-    if (norm.length == 10) {
-      return '${norm.substring(0, 3)} ${norm.substring(3, 6)} ${norm.substring(6)}';
-    }
-    return norm;
+    return normalize(rawPhone);
   }
 
   /// Generates all possible string variations for Odoo and database matching
