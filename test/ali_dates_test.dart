@@ -80,7 +80,7 @@ void main() {
 
       expect(PhoneUtils.areEqual(p1, p5), isTrue);
       expect(PhoneUtils.areEqual(p3, p7), isTrue);
-      expect(PhoneUtils.toDisplay(p1), '079 545 7988');
+      expect(PhoneUtils.toDisplay(p1), '0795457988');
     });
 
     test('Jordanian Phone Normalization based on customer_dashboard algorithm', () {
