@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/constants/api_config.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/services/notification_service.dart';
 import '../models/user_profile.dart';
 import '../models/farm_model.dart';
 import '../models/shipment_model.dart';
@@ -696,6 +697,13 @@ class SupabaseService extends ChangeNotifier {
       } catch (_) {}
     }
 
+    // Send Push Notification if relevant to active customer or all customers
+    NotificationService().showCustomerStatusNotification(
+      id: pallet.palletCode.hashCode,
+      title: '📦 استلام طبلية تمور جديدة (${pallet.palletCode})',
+      body: 'تم استلام وتوثيق طبلية (${pallet.customerName}) بوزن صافي: ${pallet.netWeight.toStringAsFixed(1)} كـغ بنجاح.',
+    );
+
     notifyListeners();
   }
 
@@ -1008,6 +1016,13 @@ class SupabaseService extends ChangeNotifier {
         } catch (_) {}
       }
 
+      // Trigger Push Notification for completed sorting output
+      NotificationService().showCustomerStatusNotification(
+        id: batchId.hashCode,
+        title: '✨ اكتمال فرز التمور بنجاح (${current.customerName})',
+        body: 'تم الانتهاء من ${current.sortingType == "presort" ? "الفرز الأولي" : "الفرز الآلي"} بإجمالي مخرجات: ${totalOutWeight.toStringAsFixed(1)} كـغ وجاهزة للتبريد/التسليم.',
+      );
+
       notifyListeners();
     }
   }
@@ -1065,6 +1080,13 @@ class SupabaseService extends ChangeNotifier {
         await _supabase!.from('documents').insert(doc.toJson());
       } catch (_) {}
     }
+
+    // Trigger Push Notification for uploaded customer document
+    NotificationService().showCustomerStatusNotification(
+      id: doc.id.hashCode,
+      title: '📄 مستند رسمي جديد متاح بحسابك (${doc.title})',
+      body: 'أضافت إدارة تمور علي مستنداً جديداً (${doc.documentType})، يمكنك استعراضه وتحميله الآن من مركز الوثائق.',
+    );
 
     notifyListeners();
   }

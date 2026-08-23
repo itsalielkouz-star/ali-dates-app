@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/constants/app_constants.dart';
 import 'core/theme/app_theme.dart';
+import 'core/services/notification_service.dart';
 import 'data/services/storage_service.dart';
 import 'data/services/supabase_service.dart';
 import 'presentation/auth/login_screen.dart';
@@ -14,7 +15,10 @@ void main() async {
   // 1. Initialize Local Storage Cache
   await StorageService.init();
 
-  // 2. Initialize Supabase & Sync State
+  // 2. Initialize Push Notification Service (Android & iOS)
+  await NotificationService().initialize();
+
+  // 3. Initialize Supabase & Sync State
   await SupabaseService().initialize();
 
   runApp(const AliDatesApp());
