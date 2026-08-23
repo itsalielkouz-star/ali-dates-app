@@ -405,7 +405,7 @@ class SupabaseService extends ChangeNotifier {
       } else {
         // Completely new first-time login
         isFirstTime = true;
-        final isHusam = cleanPhone.contains('33454144') || rawPhone.contains('33454144');
+        final isHusam = cleanPhone.contains('72033020') || rawPhone.contains('72033020');
         final isAli = cleanPhone.contains('0795457988') || rawPhone.contains('0795457988');
         final isEmp = isHusam || isAli;
 
