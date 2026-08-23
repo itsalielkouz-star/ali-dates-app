@@ -1146,7 +1146,7 @@ class SupabaseService extends ChangeNotifier {
     NotificationService().showCustomerStatusNotification(
       id: doc.id.hashCode,
       title: '📄 مستند رسمي جديد متاح بحسابك (${doc.title})',
-      body: 'أضافت إدارة تمور علي مستنداً جديداً (${doc.documentType})، يمكنك استعراضه وتحميله الآن من مركز الوثائق.',
+      body: 'أضافت إدارة تمور علي مستنداً جديداً (${doc.docTypeAr})، يمكنك استعراضه وتحميله الآن من مركز الوثائق.',
     );
 
     notifyListeners();

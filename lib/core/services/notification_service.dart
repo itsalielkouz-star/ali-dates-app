@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
@@ -16,6 +16,10 @@ class NotificationService {
   /// Initialize local push notification system with Android Notification Channels
   Future<void> initialize() async {
     if (_isInitialized) return;
+    if (kIsWeb) {
+      _isInitialized = true;
+      return;
+    }
 
     // 1. Android Initialization Settings
     const AndroidInitializationSettings initializationSettingsAndroid =
@@ -38,14 +42,14 @@ class NotificationService {
 
     try {
       await _notificationsPlugin.initialize(
-        initializationSettings,
+        settings: initializationSettings,
         onDidReceiveNotificationResponse: (NotificationResponse response) {
           debugPrint('Notification clicked: ${response.payload}');
         },
       );
 
       // Request notification permission for Android 13+ (API 33+)
-      if (!kIsWeb && Platform.isAndroid) {
+      if (Platform.isAndroid) {
         final androidImpl = _notificationsPlugin.resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>();
         await androidImpl?.requestNotificationsPermission();
@@ -65,6 +69,7 @@ class NotificationService {
     required String body,
     String? payload,
   }) async {
+    if (kIsWeb) return;
     try {
       if (!_isInitialized) {
         await initialize();
@@ -95,10 +100,10 @@ class NotificationService {
       );
 
       await _notificationsPlugin.show(
-        id,
-        title,
-        body,
-        platformDetails,
+        id: id,
+        title: title,
+        body: body,
+        notificationDetails: platformDetails,
         payload: payload,
       );
     } catch (e) {
