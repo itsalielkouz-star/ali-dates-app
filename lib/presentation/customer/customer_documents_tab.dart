@@ -116,18 +116,18 @@ class _CustomerDocumentsTabState extends State<CustomerDocumentsTab> {
               Color iconBg = AppColors.navyUltraLight;
               Color iconColor = AppColors.navy;
 
-              if (doc.docType == 'receiving_receipt') {
-                docIcon = Icons.move_to_inbox_rounded;
-                iconBg = const Color(0xFFE3F2FD);
-                iconColor = const Color(0xFF1E88E5);
-              } else if (doc.docType == 'sorting_report') {
+              if (doc.docType == 'sorting_contract' || doc.docType == 'receiving_receipt') {
                 docIcon = Icons.filter_alt_rounded;
                 iconBg = const Color(0xFFFFF3E0);
                 iconColor = const Color(0xFFE65100);
-              } else if (doc.docType == 'delivery_note') {
-                docIcon = Icons.local_shipping_rounded;
+              } else if (doc.docType == 'purchase_contract') {
+                docIcon = Icons.shopping_bag_rounded;
                 iconBg = const Color(0xFFE8F5E9);
                 iconColor = const Color(0xFF2E7D32);
+              } else if (doc.docType == 'marketing_contract') {
+                docIcon = Icons.storefront_rounded;
+                iconBg = const Color(0xFFE3F2FD);
+                iconColor = const Color(0xFF1E88E5);
               }
 
               return Card(

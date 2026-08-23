@@ -276,7 +276,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
 
   void _openUploadDocModal(UserProfile customer) {
     final titleCtrl = TextEditingController();
-    String docType = 'receiving_receipt';
+    String docType = 'sorting_contract';
     String? selectedFileName;
     String? pickedBase64;
 
@@ -309,10 +309,10 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'رفع وثيقة للعميل: ${customer.name}',
+                              'رفع سند/عقد للعميل: ${customer.name}',
                               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.navy),
                             ),
-                            const Text('سيتمكن العميل من تحميلها واستعراضها عبر تطبيقه', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                            const Text('سيتمكن العميل من تحميله واستعراضه عبر تطبيقه', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                           ],
                         ),
                       ),
@@ -325,20 +325,17 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
 
                   const Divider(height: 24),
 
-                  // Doc Type Dropdown
+                  // Doc Type Dropdown strictly: عقد فرز, عقد شراء, عقد تسويق
                   DropdownButtonFormField<String>(
                     value: docType,
                     decoration: const InputDecoration(
-                      labelText: 'نوع الوثيقة *',
-                      prefixIcon: Icon(Icons.category_rounded),
+                      labelText: 'نوع السند / العقد *',
+                      prefixIcon: Icon(Icons.description_rounded),
                     ),
                     items: const [
-                      DropdownMenuItem(value: 'receiving_receipt', child: Text('سند استلام تمور')),
-                      DropdownMenuItem(value: 'sorting_report', child: Text('تقرير نتائج الفرز')),
-                      DropdownMenuItem(value: 'delivery_note', child: Text('سند تسليم بضاعة')),
-                      DropdownMenuItem(value: 'boxes_receipt', child: Text('سند صناديق حقل')),
-                      DropdownMenuItem(value: 'contract', child: Text('عقد تشغيل أو شراء')),
-                      DropdownMenuItem(value: 'invoice', child: Text('فاتورة رسمية / كشف حساب')),
+                      DropdownMenuItem(value: 'sorting_contract', child: Text('عقد فرز')),
+                      DropdownMenuItem(value: 'purchase_contract', child: Text('عقد شراء')),
+                      DropdownMenuItem(value: 'marketing_contract', child: Text('عقد تسويق')),
                     ],
                     onChanged: (v) {
                       if (v != null) setModalState(() => docType = v);
@@ -351,7 +348,7 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
                   TextField(
                     controller: titleCtrl,
                     decoration: const InputDecoration(
-                      labelText: 'عنوان أو وصف الوثيقة *',
+                      labelText: 'عنوان أو رقم السند *',
                       hintText: 'مثال: عقد فرز موسم 2026 - دفعة تمور المجهول',
                       prefixIcon: Icon(Icons.title_rounded),
                     ),

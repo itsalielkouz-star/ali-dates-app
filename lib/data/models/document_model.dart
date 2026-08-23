@@ -30,16 +30,16 @@ class DocumentModel {
 
   String get docTypeAr {
     switch (docType) {
+      case 'sorting_contract':
+        return 'عقد فرز';
+      case 'purchase_contract':
+        return 'عقد شراء';
+      case 'marketing_contract':
+        return 'عقد تسويق';
       case 'receiving_receipt':
-        return 'سند استلام تمور';
-      case 'sorting_report':
-        return 'تقرير إنتاجية وفرز';
-      case 'delivery_note':
-        return 'سند تسليم بضاعة';
-      case 'boxes_receipt':
-        return 'سند صناديق وإيجار';
+        return 'عقد فرز (سند استلام)';
       default:
-        return 'مستند رسمي';
+        return 'عقد رسمي';
     }
   }
 
