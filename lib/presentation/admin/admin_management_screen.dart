@@ -57,6 +57,13 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
       appBar: CustomAppBar(
         title: 'لوحة الإدارة والتحكم الشاملة (Admin Portal)',
         subtitle: 'المشرف: ${adminUser?.name ?? "الإدارة العامة - تمور علي"}',
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_sweep_rounded, color: Colors.white),
+            tooltip: 'تفريغ قاعدة البيانات وإعادة ضبط كلمات المرور',
+            onPressed: () => _confirmClearDatabase(context, service),
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),
           child: Container(
@@ -1018,6 +1025,53 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
           Text(count, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: color)),
           const SizedBox(height: 2),
           Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color)),
+        ],
+      ),
+    );
+  }
+
+  void _confirmClearDatabase(BuildContext context, SupabaseService service) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 28),
+            SizedBox(width: 8),
+            Text('تفريغ قاعدة البيانات بالكامل', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          ],
+        ),
+        content: const Text(
+          'هل أنت متأكد من تفريغ كافة البيانات التشغيلية (الطبليات، الورديات، عمليات القطاف، سجلات الحركات) وإعادة ضبط كلمات المرور لجميع الحسابات إلى الحالة الأولية (1234)؟',
+          style: TextStyle(fontSize: 13, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('إلغاء', style: TextStyle(color: AppColors.textMuted)),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            icon: const Icon(Icons.delete_forever_rounded, size: 18),
+            label: const Text('تفريغ وإعادة ضبط'),
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              await service.clearDatabaseAndResetPasswords();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('✅ تم تفريغ قاعدة البيانات وإعادة ضبط كلمات المرور بنجاح'),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              }
+            },
+          ),
         ],
       ),
     );

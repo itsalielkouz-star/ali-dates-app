@@ -1337,4 +1337,62 @@ class SupabaseService extends ChangeNotifier {
 
     notifyListeners();
   }
+
+  /// Completely clear all operational data (pallets, sorting, shipments, logs, harvesting)
+  /// and reset all user profiles / passwords back to fresh activation state
+  Future<void> clearDatabaseAndResetPasswords() async {
+    // 1. Wipe remote Supabase tables if connected
+    if (_supabase != null) {
+      try {
+        await _supabase!.from('activity_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      } catch (_) {}
+      try {
+        await _supabase!.from('picking_operations').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      } catch (_) {}
+      try {
+        await _supabase!.from('sorting_batches').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      } catch (_) {}
+      try {
+        await _supabase!.from('pallets').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      } catch (_) {}
+      try {
+        await _supabase!.from('field_box_records').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      } catch (_) {}
+      try {
+        await _supabase!.from('shipments').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      } catch (_) {}
+      try {
+        await _supabase!.from('documents').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      } catch (_) {}
+
+      // Reset all profiles' passwords to initial default state (needsPasswordChange = true, passwordHash = '1234')
+      try {
+        await _supabase!.from('profiles').update({
+          'password_hash': '1234',
+          'needs_password_change': true,
+        }).neq('id', '00000000-0000-0000-0000-000000000000');
+      } catch (_) {}
+    }
+
+    // 2. Wipe in-memory active lists
+    _pallets = [];
+    _sortingBatches = [];
+    _shipments = [];
+    _documents = [];
+    _fieldBoxRecords = [];
+    _activityLogs = [];
+    _pickingOperations = [];
+
+    // Reset local profiles passwords
+    _profiles = _profiles.map((p) => p.copyWith(
+      passwordHash: '1234',
+      needsPasswordChange: true,
+    )).toList();
+
+    // 3. Clear Local Storage caches completely
+    await StorageService.clearAllData();
+    await StorageService.cacheProfiles(_profiles);
+
+    notifyListeners();
+  }
 }

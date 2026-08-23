@@ -194,7 +194,7 @@ class _IdentityDiscoveryDialogState extends State<IdentityDiscoveryDialog> {
 
                     const Divider(height: 20),
 
-                    // 2. Role Selector (Worker vs Customer)
+                    // 2. Read-only Role Display (System Determined)
                     Row(
                       children: [
                         Icon(
@@ -207,86 +207,22 @@ class _IdentityDiscoveryDialogState extends State<IdentityDiscoveryDialog> {
                           'نوع الحساب:',
                           style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textMuted),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-
-                    // Toggle Buttons for Role
-                    Row(
-                      children: [
-                        // Worker Button
-                        Expanded(
-                          child: InkWell(
-                            onTap: () => setState(() => _isEmployee = true),
-                            borderRadius: BorderRadius.circular(10),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-                              decoration: BoxDecoration(
-                                color: _isEmployee ? const Color(0xFF2E7D32) : Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: _isEmployee ? const Color(0xFF2E7D32) : AppColors.border,
-                                  width: _isEmployee ? 2 : 1,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.badge_rounded,
-                                    size: 18,
-                                    color: _isEmployee ? Colors.white : AppColors.navy,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'موظف / كادر',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: _isEmployee ? Colors.white : AppColors.navy,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: _isEmployee ? const Color(0xFFE8F5E9) : const Color(0xFFE3F2FD),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: _isEmployee ? const Color(0xFF81C784) : const Color(0xFF90CAF9),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-
-                        // Customer Button
-                        Expanded(
-                          child: InkWell(
-                            onTap: () => setState(() => _isEmployee = false),
-                            borderRadius: BorderRadius.circular(10),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-                              decoration: BoxDecoration(
-                                color: !_isEmployee ? const Color(0xFF1565C0) : Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: !_isEmployee ? const Color(0xFF1565C0) : AppColors.border,
-                                  width: !_isEmployee ? 2 : 1,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.agriculture_rounded,
-                                    size: 18,
-                                    color: !_isEmployee ? Colors.white : AppColors.navy,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'عميل / مزارع',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: !_isEmployee ? Colors.white : AppColors.navy,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                          child: Text(
+                            _isEmployee ? 'موظف / كادر رسمي' : 'عميل / مزارع',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: _isEmployee ? const Color(0xFF1B5E20) : const Color(0xFF0D47A1),
                             ),
                           ),
                         ),

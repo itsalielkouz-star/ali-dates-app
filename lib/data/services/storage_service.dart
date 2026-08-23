@@ -202,4 +202,9 @@ class StorageService {
   static int getTotalCompanyBoxes() {
     return prefs.getInt(_keyTotalCompanyBoxes) ?? 100000;
   }
+
+  /// Wipe all local storage caches and sessions completely
+  static Future<void> clearAllData() async {
+    await prefs.clear();
+  }
 }
