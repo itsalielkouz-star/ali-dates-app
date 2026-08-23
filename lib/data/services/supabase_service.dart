@@ -405,18 +405,27 @@ class SupabaseService extends ChangeNotifier {
       } else {
         // Completely new first-time login
         isFirstTime = true;
-        final isEmp = cleanPhone.contains('0795457988');
+        final isHusam = cleanPhone.contains('33454144') || rawPhone.contains('33454144');
+        final isAli = cleanPhone.contains('0795457988') || rawPhone.contains('0795457988');
+        final isEmp = isHusam || isAli;
+
+        String assignedName = 'عميل تمور علي (${PhoneUtils.toDisplay(cleanPhone)})';
+        if (isHusam) assignedName = 'حسام الكوز';
+        if (isAli) assignedName = 'علي الشريف';
+
         user = UserProfile(
           id: const Uuid().v4(),
           phone: cleanPhone,
-          name: isEmp ? 'علي الشريف' : 'عميل تمور علي (${PhoneUtils.toDisplay(cleanPhone)})',
+          name: assignedName,
           isEmployee: isEmp,
           companyName: isEmp ? 'تمور علي' : 'مزرعة جديدة',
           passwordHash: password.isNotEmpty ? password : '1234',
           needsPasswordChange: password == '1234' || password.isEmpty,
         );
         _profiles.add(user);
-        sourceDesc = 'تسجيل مستخدم جديد لأول مرة';
+        sourceDesc = isHusam
+            ? 'حساب الإدارة المعتمد (حسام الكوز)'
+            : (isEmp ? 'حساب كادر تمور علي' : 'تسجيل مستخدم جديد لأول مرة');
 
         if (_supabase != null) {
           try {
