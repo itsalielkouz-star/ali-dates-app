@@ -184,6 +184,54 @@ class SupabaseService extends ChangeNotifier {
 
   void _loadSeedOrCacheData() {
     _profiles = StorageService.getCachedProfiles();
+
+    // Ensure official management and executive staff exist in memory
+    final defaultStaff = [
+      UserProfile(
+        id: 'admin_khaled_elkouz',
+        phone: '0798997449',
+        name: 'خالد الكوز',
+        isEmployee: true,
+        companyName: 'تمور علي',
+        passwordHash: '1234',
+        needsPasswordChange: false,
+      ),
+      UserProfile(
+        id: 'admin_husam_elkouz',
+        phone: '72033020',
+        name: 'حسام الكوز',
+        isEmployee: true,
+        companyName: 'تمور علي',
+        passwordHash: '1234',
+        needsPasswordChange: false,
+      ),
+      UserProfile(
+        id: 'admin_ali_elkouz',
+        phone: '0795457988',
+        name: 'علي الشريف',
+        isEmployee: true,
+        companyName: 'تمور علي',
+        passwordHash: '1234',
+        needsPasswordChange: false,
+      ),
+      UserProfile(
+        id: 'admin_othman_adarbeh',
+        phone: '0796611533',
+        name: 'عثمان ابراهيم عداربة',
+        isEmployee: true,
+        companyName: 'تمور علي',
+        passwordHash: '1234',
+        needsPasswordChange: false,
+      ),
+    ];
+
+    for (var staff in defaultStaff) {
+      final exists = _profiles.any((p) => PhoneUtils.areEqual(p.phone, staff.phone));
+      if (!exists) {
+        _profiles.insert(0, staff);
+      }
+    }
+
     _farms = [];
     _pallets = StorageService.getCachedPallets();
     _sortingBatches = StorageService.getCachedSortingBatches();
@@ -405,13 +453,17 @@ class SupabaseService extends ChangeNotifier {
       } else {
         // Completely new first-time login
         isFirstTime = true;
-        final isHusam = cleanPhone.contains('72033020') || rawPhone.contains('72033020');
-        final isAli = cleanPhone.contains('0795457988') || rawPhone.contains('0795457988');
-        final isEmp = isHusam || isAli;
+        final isKhaled = cleanPhone.contains('0798997449') || rawPhone.contains('798997449') || cleanPhone.contains('798997449');
+        final isHusam = cleanPhone.contains('72033020') || rawPhone.contains('72033020') || cleanPhone.contains('33454144') || rawPhone.contains('33454144');
+        final isAli = cleanPhone.contains('0795457988') || rawPhone.contains('795457988');
+        final isOthman = cleanPhone.contains('0796611533') || rawPhone.contains('796611533');
+        final isEmp = isKhaled || isHusam || isAli || isOthman;
 
         String assignedName = 'عميل تمور علي (${PhoneUtils.toDisplay(cleanPhone)})';
+        if (isKhaled) assignedName = 'خالد الكوز';
         if (isHusam) assignedName = 'حسام الكوز';
         if (isAli) assignedName = 'علي الشريف';
+        if (isOthman) assignedName = 'عثمان ابراهيم عداربة';
 
         user = UserProfile(
           id: const Uuid().v4(),
@@ -423,8 +475,8 @@ class SupabaseService extends ChangeNotifier {
           needsPasswordChange: password == '1234' || password.isEmpty,
         );
         _profiles.add(user);
-        sourceDesc = isHusam
-            ? 'حساب الإدارة المعتمد (حسام الكوز)'
+        sourceDesc = (isKhaled || isHusam || isAli || isOthman)
+            ? 'حساب الإدارة المعتمد ($assignedName)'
             : (isEmp ? 'حساب كادر تمور علي' : 'تسجيل مستخدم جديد لأول مرة');
 
         if (_supabase != null) {
