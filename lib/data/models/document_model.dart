@@ -36,10 +36,14 @@ class DocumentModel {
         return 'عقد شراء';
       case 'marketing_contract':
         return 'عقد تسويق';
+      case 'invoice':
+        return 'فاتورة';
+      case 'account_statement':
+        return 'كشف حساب';
       case 'receiving_receipt':
         return 'عقد فرز (سند استلام)';
       default:
-        return 'عقد رسمي';
+        return 'مستند رسمي';
     }
   }
 

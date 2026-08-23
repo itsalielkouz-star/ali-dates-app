@@ -325,17 +325,19 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
 
                   const Divider(height: 24),
 
-                  // Doc Type Dropdown strictly: عقد فرز, عقد شراء, عقد تسويق
+                  // Doc Type Dropdown: عقد فرز, عقد شراء, عقد تسويق, فاتورة, كشف حساب
                   DropdownButtonFormField<String>(
                     value: docType,
                     decoration: const InputDecoration(
-                      labelText: 'نوع السند / العقد *',
+                      labelText: 'نوع السند / المستند *',
                       prefixIcon: Icon(Icons.description_rounded),
                     ),
                     items: const [
                       DropdownMenuItem(value: 'sorting_contract', child: Text('عقد فرز')),
                       DropdownMenuItem(value: 'purchase_contract', child: Text('عقد شراء')),
                       DropdownMenuItem(value: 'marketing_contract', child: Text('عقد تسويق')),
+                      DropdownMenuItem(value: 'invoice', child: Text('فاتورة')),
+                      DropdownMenuItem(value: 'account_statement', child: Text('كشف حساب')),
                     ],
                     onChanged: (v) {
                       if (v != null) setModalState(() => docType = v);

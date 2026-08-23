@@ -128,6 +128,14 @@ class _CustomerDocumentsTabState extends State<CustomerDocumentsTab> {
                 docIcon = Icons.storefront_rounded;
                 iconBg = const Color(0xFFE3F2FD);
                 iconColor = const Color(0xFF1E88E5);
+              } else if (doc.docType == 'invoice') {
+                docIcon = Icons.receipt_long_rounded;
+                iconBg = const Color(0xFFEDE7F6);
+                iconColor = const Color(0xFF5E35B1);
+              } else if (doc.docType == 'account_statement') {
+                docIcon = Icons.account_balance_wallet_rounded;
+                iconBg = const Color(0xFFE0F2F1);
+                iconColor = const Color(0xFF00796B);
               }
 
               return Card(
