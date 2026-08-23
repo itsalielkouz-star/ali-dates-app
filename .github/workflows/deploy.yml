@@ -1,4 +1,4 @@
-﻿name: Deploy Ali Dates Web to GitHub Pages
+name: Deploy Ali Dates Web to GitHub Pages
 
 on:
   push:
@@ -37,7 +37,7 @@ jobs:
 
       - name: Create .env File
         run: |
-          cat << 'EOF' > .env
+          cat << EOF > .env
           SUPABASE_URL=${{ secrets.SUPABASE_URL }}
           SUPABASE_PUBLISHABLE_KEY=${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
           SUPABASE_SECRET_KEY=${{ secrets.SUPABASE_SECRET_KEY }}

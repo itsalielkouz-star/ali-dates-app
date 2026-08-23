@@ -8,12 +8,12 @@ import '../models/user_profile.dart';
 
 /// Odoo ERP Service for Both Employee (`hr.employee`) and Contact (`res.partner`) Modules
 class OdooService {
-  /// Resolves the JSON-RPC endpoint (uses current web server proxy on web to eliminate CORS, direct on mobile)
+  /// Resolves the JSON-RPC endpoint
   static Uri get odooJsonRpcUri {
-    if (kIsWeb) {
-      return Uri.parse('/jsonrpc');
-    }
-    return Uri.parse('${ApiConfig.odooUrl}/jsonrpc');
+    final odooBase = ApiConfig.odooUrl.isNotEmpty
+        ? ApiConfig.odooUrl
+        : 'https://odoo-ps-psae-ali-dates.odoo.com';
+    return Uri.parse('$odooBase/jsonrpc');
   }
 
   /// Look up a person by phone number comparing both Odoo Employee App & Contact App
