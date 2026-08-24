@@ -5,13 +5,15 @@ import 'package:image_picker/image_picker.dart';
 import 'package:printing/printing.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:fl_chart/fl_chart.dart';
+import 'package:uuid/uuid.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/utils/phone_utils.dart';
 import '../../data/models/user_profile.dart';
 import '../../data/models/document_model.dart';
 import '../../data/models/activity_log_model.dart';
 import '../../data/models/pallet_model.dart';
+import '../../data/services/storage_service.dart';
 import '../../data/services/supabase_service.dart';
 import '../widgets/custom_app_bar.dart';
 

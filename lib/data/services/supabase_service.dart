@@ -1239,10 +1239,8 @@ class SupabaseService extends ChangeNotifier {
       agentName: laborTeamLeaderName,
       plateNumber: 'فريق الحقل',
       boxContractType: 'picking_crates',
-      notes: 'صناديق مصروفة لخطة القطاف ($code)',
     );
     _shipments.insert(0, boxShipment);
-    await StorageService.cacheShipments(_shipments);
 
     final boxRecord = FieldBoxModel(
       id: const Uuid().v4(),
@@ -1254,7 +1252,6 @@ class SupabaseService extends ChangeNotifier {
       lostCount: 0,
     );
     _fieldBoxRecords.insert(0, boxRecord);
-    await StorageService.cacheFieldBoxes(_fieldBoxRecords);
 
     await logAction(
       actionType: 'harvest_plan',

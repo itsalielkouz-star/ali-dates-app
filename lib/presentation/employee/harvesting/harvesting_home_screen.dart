@@ -13,6 +13,7 @@ import '../../../data/models/farm_model.dart';
 import '../../../data/services/supabase_service.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../widgets/customer_selection_modal.dart';
+import '../../widgets/signature_dialog.dart';
 
 /// 5th Core Section: Harvesting & Picking Operations (عمليات القطاف والحصاد الميداني)
 /// Implements complete 34-step real-world business cycle:
