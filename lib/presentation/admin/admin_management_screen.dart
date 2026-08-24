@@ -197,9 +197,25 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
 
           const SizedBox(height: 14),
 
-          Text(
-            'قائمة العملاء والمزارعين (${customers.length}):',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.navy),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'قائمة العملاء والمزارعين (${customers.length}):',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.navy),
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.dateGold,
+                  foregroundColor: AppColors.navy,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
+                label: const Text('إضافة موظف جديد', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                onPressed: () => _openAddEmployeeModal(context, service),
+              ),
+            ],
           ),
 
           const SizedBox(height: 8),
@@ -1070,6 +1086,149 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
                 );
               }
             },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openAddEmployeeModal(BuildContext context, SupabaseService service) {
+    final nameCtrl = TextEditingController();
+    final phoneCtrl = TextEditingController();
+    final jobTitleCtrl = TextEditingController(text: 'موظف عمليات وميدان');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.person_add_alt_1_rounded, color: AppColors.navy, size: 26),
+            SizedBox(width: 8),
+            Text('إضافة موظف / كادر رسمي', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.navy)),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'سيتم تسجيل الموظف في النظام وتمكينه من الدخول للوحة التحكم الرسمية وصلاحيات العمليات.',
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'اسم الموظف الثلاثي *',
+                  hintText: 'مثال: أحمد عبد الله الكوز',
+                  prefixIcon: Icon(Icons.badge_rounded),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: phoneCtrl,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: 'رقم الهاتف *',
+                  hintText: 'مثال: 0791234567',
+                  prefixIcon: Icon(Icons.phone_rounded),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: jobTitleCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'المسمى الوظيفي / الدور',
+                  prefixIcon: Icon(Icons.work_rounded),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.navyUltraLight,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.lock_reset_rounded, color: AppColors.navy, size: 18),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'كلمة المرور الأولية ستكون (1234) وسيطلب النظام منه تغييرها عند أول تسجيل دخول.',
+                        style: TextStyle(fontSize: 11, color: AppColors.navy),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('إلغاء', style: TextStyle(color: AppColors.textMuted)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.navy,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () async {
+              final name = nameCtrl.text.trim();
+              final phone = phoneCtrl.text.trim();
+              if (name.isEmpty || phone.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('يرجى ملء الاسم ورقم الهاتف'), backgroundColor: AppColors.warning),
+                );
+                return;
+              }
+
+              final newEmp = UserProfile(
+                id: const Uuid().v4(),
+                phone: PhoneUtils.toLocal(phone),
+                name: name,
+                isEmployee: true,
+                companyName: 'تمور علي',
+                passwordHash: '1234',
+                needsPasswordChange: true,
+              );
+
+              await service.updateUserProfile(
+                userId: newEmp.id,
+                name: newEmp.name,
+                isEmployee: true,
+                companyName: 'تمور علي',
+              );
+
+              // Add to profiles if not exists
+              final idx = service.profiles.indexWhere((p) => PhoneUtils.areEqual(p.phone, newEmp.phone));
+              if (idx == -1) {
+                service.profiles.insert(0, newEmp);
+                await StorageService.cacheProfiles(service.profiles);
+                if (service.client != null) {
+                  try {
+                    await service.client!.from('profiles').upsert(newEmp.toJson());
+                  } catch (_) {}
+                }
+              }
+
+              if (context.mounted) {
+                Navigator.of(ctx).pop();
+                setState(() {});
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('✅ تم تسجيل الموظف ($name) بنجاح برقم: ${newEmp.phone}'),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              }
+            },
+            child: const Text('حفظ وتسجيل الموظف'),
           ),
         ],
       ),

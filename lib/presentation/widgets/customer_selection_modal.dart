@@ -102,6 +102,13 @@ class _CustomerSelectionModalState extends State<CustomerSelectionModal> {
         final bIsJo = PhoneUtils.isJordanian(b.phone);
         if (aIsJo && !bIsJo) return -1;
         if (!aIsJo && bIsJo) return 1;
+
+        final aScore = SupabaseService().getCustomerActivityScore(a.id);
+        final bScore = SupabaseService().getCustomerActivityScore(b.id);
+        if (aScore != bScore) {
+          return bScore.compareTo(aScore);
+        }
+
         return a.name.toLowerCase().compareTo(b.name.toLowerCase());
       });
 

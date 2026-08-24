@@ -575,6 +575,59 @@ class _HarvestingHomeScreenState extends State<HarvestingHomeScreen>
 
                     const SizedBox(height: 12),
 
+                    // Date Picker Selection Widget
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.event_available_rounded, color: AppColors.navy, size: 20),
+                              const SizedBox(width: 8),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('تاريخ وموعد الحصاد المجدول:', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                                  Text(
+                                    DateFormat('EEEE, yyyy/MM/dd', 'ar').format(plannedDate),
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.navy),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          TextButton.icon(
+                            style: TextButton.styleFrom(
+                              backgroundColor: AppColors.navyUltraLight,
+                              foregroundColor: AppColors.navy,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            icon: const Icon(Icons.edit_calendar_rounded, size: 16),
+                            label: const Text('تغيير التاريخ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                            onPressed: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: plannedDate,
+                                firstDate: DateTime.now().subtract(const Duration(days: 7)),
+                                lastDate: DateTime.now().add(const Duration(days: 90)),
+                              );
+                              if (picked != null) {
+                                setModalState(() => plannedDate = picked);
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
                     // Roles Distinction: Supervisor (Ali Dates) vs Labor Team Leader (Daily Worker)
                     Container(
                       padding: const EdgeInsets.all(12),
@@ -634,6 +687,59 @@ class _HarvestingHomeScreenState extends State<HarvestingHomeScreen>
                       ),
                     ),
 
+                    // Signature Section
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0FDF4),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFBBF7D0)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(Icons.draw_rounded, color: Color(0xFF16A34A), size: 18),
+                                  SizedBox(width: 6),
+                                  Text('توقيع اعتماد خطة وصرف الصناديق:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.navy)),
+                                ],
+                              ),
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF16A34A),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                icon: const Icon(Icons.edit_rounded, color: Colors.white, size: 14),
+                                label: const Text('توقيع الآن', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                onPressed: () async {
+                                  final sig = await SignatureDialog.show(
+                                    context,
+                                    title: 'توقيع اعتماد خطة وصرف صناديق الحقل',
+                                    signerRole: selectedCustomer?.name ?? 'المزارع / المشرف',
+                                  );
+                                  if (sig != null) {
+                                    setModalState(() {
+                                      notesCtrl.text = '${notesCtrl.text.trim()} [تم التوقيع الإلكتروني للاعتماد]'.trim();
+                                    });
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          const Text(
+                            '💡 سيتم فور الاعتماد حسم عدد الصناديق مباشرة من الرصيد المتوفر في مستودع المصنع وتوثيقها بعهدة المزرعة.',
+                            style: TextStyle(fontSize: 11, color: Color(0xFF15803D)),
+                          ),
+                        ],
+                      ),
+                    ),
+
                     const SizedBox(height: 20),
 
                     ElevatedButton(
@@ -675,11 +781,14 @@ class _HarvestingHomeScreenState extends State<HarvestingHomeScreen>
                           Navigator.of(ctx).pop();
                           setState(() {});
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('✅ تم إنشاء وجدولة خطة القطاف بنجاح'), backgroundColor: AppColors.success),
+                            SnackBar(
+                              content: Text('✅ تم اعتماد الخطة، التوقيع، وحسم ($crates) صندوق من رصيد المصنع بنجاح'),
+                              backgroundColor: AppColors.success,
+                            ),
                           );
                         }
                       },
-                      child: const Text('اعتماد خطة القطاف والجدولة', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14)),
+                      child: const Text('اعتماد خطة القطاف والتوقيع وصرف الصناديق', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14)),
                     ),
                   ],
                 ),

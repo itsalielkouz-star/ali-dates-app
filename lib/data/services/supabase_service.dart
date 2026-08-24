@@ -603,18 +603,38 @@ class SupabaseService extends ChangeNotifier {
 
   // --- Customer & Farm Operations ---
 
+  /// Activity score calculation for a customer based on pallets, shipments, batches, docs, and picking operations
+  int getCustomerActivityScore(String customerId) {
+    int score = 0;
+    score += _pallets.where((p) => p.customerId == customerId).length * 3;
+    score += _shipments.where((s) => s.customerId == customerId).length * 3;
+    score += _sortingBatches.where((b) => b.customerId == customerId).length * 2;
+    score += _pickingOperations.where((o) => o.customerId == customerId).length * 4;
+    score += _documents.where((d) => d.customerId == customerId).length;
+    score += _activityLogs.where((l) => l.employeeId == customerId || l.palletCode?.isNotEmpty == true).length;
+    return score;
+  }
+
   List<UserProfile> getCustomerContacts() {
     final list = _profiles.where((p) => !p.isEmployee).toList();
 
-    // Priority Sort:
-    // 1. Jordanian Numbers (079, 078, 077, +962)
-    // 2. Other valid international numbers
-    // 3. Odoo contacts without direct phone
+    // Priority Sort everywhere:
+    // 1. Jordanian Numbers First (079, 078, 077, +962)
+    // 2. Highest Activity on Top (Most pallets, shipments, harvesting ops, and transactions)
+    // 3. Other valid international numbers with activity
+    // 4. Alphabetical by Name
     list.sort((a, b) {
       final aIsJo = PhoneUtils.isJordanian(a.phone);
       final bIsJo = PhoneUtils.isJordanian(b.phone);
+
       if (aIsJo && !bIsJo) return -1;
       if (!aIsJo && bIsJo) return 1;
+
+      final aScore = getCustomerActivityScore(a.id);
+      final bScore = getCustomerActivityScore(b.id);
+      if (aScore != bScore) {
+        return bScore.compareTo(aScore); // Most active on top
+      }
 
       final aHasPhone = !a.phone.startsWith('odoo_no_phone_');
       final bHasPhone = !b.phone.startsWith('odoo_no_phone_');
@@ -1206,10 +1226,40 @@ class SupabaseService extends ChangeNotifier {
     _pickingOperations.insert(0, operation);
     await StorageService.cachePickingOperations(_pickingOperations);
 
+    // Automatically reserve and deduct crates from available stock
+    final boxShipment = ShipmentModel(
+      id: const Uuid().v4(),
+      direction: 'outbound',
+      cargoType: 'boxes',
+      customerId: customerId,
+      customerName: customerName,
+      farmId: farmId,
+      farmName: farmName,
+      driverName: supervisorName,
+      agentName: laborTeamLeaderName,
+      plateNumber: 'فريق الحقل',
+      boxContractType: 'picking_crates',
+      notes: 'صناديق مصروفة لخطة القطاف ($code)',
+    );
+    _shipments.insert(0, boxShipment);
+    await StorageService.cacheShipments(_shipments);
+
+    final boxRecord = FieldBoxModel(
+      id: const Uuid().v4(),
+      shipmentId: boxShipment.id,
+      customerId: customerId,
+      customerName: customerName,
+      boxCount: plannedCrates,
+      damagedCount: 0,
+      lostCount: 0,
+    );
+    _fieldBoxRecords.insert(0, boxRecord);
+    await StorageService.cacheFieldBoxes(_fieldBoxRecords);
+
     await logAction(
       actionType: 'harvest_plan',
-      title: 'إنشاء خطة قطاف جديدة ($code)',
-      details: 'تم جدولة عملية قطاف لمزرعة ($farmName - $landName) للمزارع ($customerName) بإشراف ($supervisorName) ورئيس العمال ($laborTeamLeaderName)',
+      title: 'إنشاء خطة قطاف وصرف صناديق ($code)',
+      details: 'تم جدولة عملية قطاف لمزرعة ($farmName - $landName) للمزارع ($customerName) وصرف ($plannedCrates) صندوق حقل من رصيد المصنع.',
       employeeName: supervisorName,
     );
 
