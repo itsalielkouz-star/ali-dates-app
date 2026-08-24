@@ -385,6 +385,8 @@ class _CustomerSelectionModalState extends State<CustomerSelectionModal> {
                         ),
                         title: Text(
                           customer.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
                             color: isSelected ? AppColors.navy : Colors.black87,
@@ -412,16 +414,20 @@ class _CustomerSelectionModalState extends State<CustomerSelectionModal> {
                                 ),
                               ),
                             ],
-                            Text(
-                              customer.phone.startsWith('odoo_no_phone')
-                                  ? 'جهة اتصال من Odoo'
-                                  : PhoneUtils.toDisplay(customer.phone),
-                              textDirection: customer.phone.startsWith('odoo_no_phone')
-                                  ? TextDirection.rtl
-                                  : TextDirection.ltr,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: isSelected ? AppColors.navy : AppColors.textMuted,
+                            Expanded(
+                              child: Text(
+                                customer.phone.startsWith('odoo_no_phone')
+                                    ? 'جهة اتصال من Odoo'
+                                    : PhoneUtils.toDisplay(customer.phone),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textDirection: customer.phone.startsWith('odoo_no_phone')
+                                    ? TextDirection.rtl
+                                    : TextDirection.ltr,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isSelected ? AppColors.navy : AppColors.textMuted,
+                                ),
                               ),
                             ),
                           ],

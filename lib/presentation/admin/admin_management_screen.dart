@@ -261,11 +261,15 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
                             children: [
                               Text(
                                 c.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.navy),
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'الهاتف: ${c.phone} | عدد الوثائق: ${docs.length}',
+                                'الهاتف: ${c.phone} | الوثائق: ${docs.length}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                               ),
                             ],
