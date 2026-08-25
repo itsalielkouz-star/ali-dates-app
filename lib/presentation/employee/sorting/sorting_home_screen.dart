@@ -1864,12 +1864,297 @@ class _SortingHomeScreenState extends State<SortingHomeScreen> with SingleTicker
       return;
     }
 
+    // 2. Ask user for exact freezer and location code (e.g., A11, A12) for each output pallet
+    final Map<String, Map<String, dynamic>> outputPalletLocations = {};
+    if (batch.outputPallets.isNotEmpty) {
+      final bool? locationsConfirmed = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => StatefulBuilder(
+          builder: (ctx, setLocState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                constraints: const BoxConstraints(maxWidth: 550, maxHeight: 680),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.navyUltraLight,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.warehouse_rounded, color: AppColors.navy, size: 24),
+                        ),
+                        const SizedBox(width: 10),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'تحديد مواقع تخزين طبالي المخرجات',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.navy),
+                              ),
+                              Text(
+                                'اختر الفريزر والموقع الدقيق (مثال: A11) لكل طبلية مفرزة',
+                                style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    const Divider(height: 1),
+                    const SizedBox(height: 10),
+
+                    // List of output pallets with Location pickers
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: batch.outputPallets.length,
+                        itemBuilder: (ctx, idx) {
+                          final item = batch.outputPallets[idx];
+                          final currentLoc = outputPalletLocations[item.id] ?? {
+                            'locationType': AppConstants.locMainFreezer1,
+                            'row': 'A',
+                            'col': 1,
+                            'layer': 1,
+                            'locationCode': 'A11',
+                          };
+                          outputPalletLocations[item.id] = currentLoc;
+
+                          final isMainFreezer = currentLoc['locationType'] == AppConstants.locMainFreezer1 ||
+                              currentLoc['locationType'] == AppConstants.locMainFreezer2;
+
+                          return Card(
+                            margin: const EdgeInsets.symmetric(vertical: 6),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: const BorderSide(color: AppColors.border),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.inventory_2_rounded, color: AppColors.navy, size: 18),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            item.palletCode,
+                                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, fontFamily: 'monospace', color: AppColors.navy),
+                                          ),
+                                        ],
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.navyUltraLight,
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          '${item.category} (${item.size}) | ${item.weight.toStringAsFixed(1)} كغ',
+                                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.navy),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+
+                                  // Freezer / Location Selector Dropdown
+                                  DropdownButtonFormField<String>(
+                                    value: currentLoc['locationType'],
+                                    decoration: const InputDecoration(
+                                      labelText: 'الفريزر / منطقة التخزين *',
+                                      prefixIcon: Icon(Icons.ac_unit_rounded),
+                                      contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                    ),
+                                    items: [
+                                      AppConstants.locMainFreezer1,
+                                      AppConstants.locMainFreezer2,
+                                      AppConstants.locSmallFreezer,
+                                      AppConstants.locFirstFridge,
+                                      AppConstants.locPreFridge,
+                                    ].map((loc) {
+                                      return DropdownMenuItem(
+                                        value: loc,
+                                        child: Text(
+                                          AppConstants.locationNamesAr[loc] ?? loc,
+                                          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                                        ),
+                                      );
+                                    }).toList(),
+                                    onChanged: (val) {
+                                      if (val != null) {
+                                        setLocState(() {
+                                          currentLoc['locationType'] = val;
+                                        });
+                                      }
+                                    },
+                                  ),
+
+                                  if (isMainFreezer) ...[
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        // Row (A-P)
+                                        Expanded(
+                                          child: DropdownButtonFormField<String>(
+                                            value: currentLoc['row'],
+                                            decoration: const InputDecoration(
+                                              labelText: 'الصف (Row)',
+                                              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                            ),
+                                            items: AppConstants.freezerRows.map((r) {
+                                              return DropdownMenuItem(
+                                                value: r,
+                                                child: Text(r, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                              );
+                                            }).toList(),
+                                            onChanged: (val) {
+                                              if (val != null) {
+                                                setLocState(() {
+                                                  currentLoc['row'] = val;
+                                                  currentLoc['locationCode'] = '${val}${currentLoc['col']}${currentLoc['layer']}';
+                                                });
+                                              }
+                                            },
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+
+                                        // Column (1-8)
+                                        Expanded(
+                                          child: DropdownButtonFormField<int>(
+                                            value: currentLoc['col'],
+                                            decoration: const InputDecoration(
+                                              labelText: 'العمود (Col)',
+                                              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                            ),
+                                            items: AppConstants.freezerCols.map((c) {
+                                              return DropdownMenuItem(
+                                                value: c,
+                                                child: Text('$c', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                              );
+                                            }).toList(),
+                                            onChanged: (val) {
+                                              if (val != null) {
+                                                setLocState(() {
+                                                  currentLoc['col'] = val;
+                                                  currentLoc['locationCode'] = '${currentLoc['row']}${val}${currentLoc['layer']}';
+                                                });
+                                              }
+                                            },
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+
+                                        // Layer (1-3)
+                                        Expanded(
+                                          child: DropdownButtonFormField<int>(
+                                            value: currentLoc['layer'],
+                                            decoration: const InputDecoration(
+                                              labelText: 'الطبقة (L)',
+                                              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                            ),
+                                            items: AppConstants.freezerLayers.map((l) {
+                                              return DropdownMenuItem(
+                                                value: l,
+                                                child: Text('L$l', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                              );
+                                            }).toList(),
+                                            onChanged: (val) {
+                                              if (val != null) {
+                                                setLocState(() {
+                                                  currentLoc['layer'] = val;
+                                                  currentLoc['locationCode'] = '${currentLoc['row']}${currentLoc['col']}${val}';
+                                                });
+                                              }
+                                            },
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF1F5F9),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          const Text('كود الموقع الدقيق بالفريزر:', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                                          Text(
+                                            '${currentLoc['locationCode']}',
+                                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: AppColors.navy, fontFamily: 'monospace'),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.of(ctx).pop(false),
+                            child: const Text('إلغاء والتراجع'),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.navy,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            icon: const Icon(Icons.save_rounded, size: 18),
+                            label: const Text('تأكيد المواقع وحفظ المخرجات', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                            onPressed: () => Navigator.of(ctx).pop(true),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      );
+
+      if (locationsConfirmed != true) return;
+    }
+
     final wasteWeight = diff > 0 ? diff : 0.0;
 
     await SupabaseService().completeSortingBatch(
       batchId: batch.id,
       outputPallets: batch.outputPallets,
       wasteWeight: wasteWeight,
+      palletLocations: outputPalletLocations,
     );
 
     final completedBatch = batch.copyWith(

@@ -1336,6 +1336,7 @@ class SupabaseService extends ChangeNotifier {
     required List<SortingOutputItem> outputPallets,
     required double wasteWeight,
     Map<String, double>? wasteDetails,
+    Map<String, Map<String, dynamic>>? palletLocations,
   }) async {
     final index = _sortingBatches.indexWhere((b) => b.id == batchId);
     if (index != -1) {
@@ -1368,8 +1369,15 @@ class SupabaseService extends ChangeNotifier {
       _sortingBatches[index] = completedBatch;
       await StorageService.cacheSortingBatches(_sortingBatches);
 
-      // Register new output pallets in warehouse
+      // Register new output pallets in warehouse with chosen locations
       for (var out in outputPallets) {
+        final locInfo = palletLocations?[out.id];
+        final locType = locInfo?['locationType']?.toString() ?? AppConstants.locMainFreezer1;
+        final row = locInfo?['row']?.toString();
+        final col = locInfo?['col'] is int ? locInfo!['col'] as int : int.tryParse(locInfo?['col']?.toString() ?? '');
+        final layer = locInfo?['layer'] is int ? locInfo!['layer'] as int : int.tryParse(locInfo?['layer']?.toString() ?? '');
+        final locationCode = locInfo?['locationCode']?.toString();
+
         final newPallet = PalletModel(
           id: out.id,
           palletCode: out.palletCode,
@@ -1382,7 +1390,11 @@ class SupabaseService extends ChangeNotifier {
           boxCount: out.boxCount,
           emptyBoxWeight: 0.0,
           emptyPalletWeight: 0.0,
-          locationType: AppConstants.locMainFreezer1,
+          locationType: locType,
+          freezerRow: row,
+          freezerCol: col,
+          freezerLayer: layer,
+          locationCode: locationCode,
           status: 'sorted',
           category: out.category,
           size: out.size,
@@ -1395,6 +1407,36 @@ class SupabaseService extends ChangeNotifier {
       if (_supabase != null) {
         try {
           await _supabase!.from('sorting_batches').update(completedBatch.toJson()).eq('id', batchId);
+          for (var out in outputPallets) {
+            final locInfo = palletLocations?[out.id];
+            final locType = locInfo?['locationType']?.toString() ?? AppConstants.locMainFreezer1;
+            final row = locInfo?['row']?.toString();
+            final col = locInfo?['col'] is int ? locInfo!['col'] as int : int.tryParse(locInfo?['col']?.toString() ?? '');
+            final layer = locInfo?['layer'] is int ? locInfo!['layer'] as int : int.tryParse(locInfo?['layer']?.toString() ?? '');
+            final locationCode = locInfo?['locationCode']?.toString();
+
+            final pModel = PalletModel(
+              id: out.id,
+              palletCode: out.palletCode,
+              customerId: current.customerId,
+              customerName: current.customerName,
+              farmId: current.farmId,
+              farmName: current.farmName,
+              grossWeight: out.weight,
+              netWeight: out.weight,
+              boxCount: out.boxCount,
+              locationType: locType,
+              freezerRow: row,
+              freezerCol: col,
+              freezerLayer: layer,
+              locationCode: locationCode,
+              status: 'sorted',
+              category: out.category,
+              size: out.size,
+              isPresorted: true,
+            );
+            await _supabase!.from('pallets').insert(pModel.toJson());
+          }
         } catch (_) {}
       }
 
