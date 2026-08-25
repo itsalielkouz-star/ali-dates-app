@@ -33,7 +33,7 @@ class _ReceivingTruckScreenState extends State<ReceivingTruckScreen> {
   final _driverNameController = TextEditingController();
   final _agentNameController = TextEditingController();
   final _plateNumberController = TextEditingController();
-  final bool _isPresorted = false;
+  bool _isPresorted = false;
   String _boxContractType = ShipmentModel.contractSorting; // تحديد ملكية الصناديق: 1. من عقد فرز, 2. من عقد تسويق, 3. من عقد شراء
 
   Uint8List? _truckPhotoBytes;
