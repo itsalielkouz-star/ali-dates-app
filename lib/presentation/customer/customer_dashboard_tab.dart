@@ -287,7 +287,7 @@ class _CustomerDashboardTabState extends State<CustomerDashboardTab> {
                           ],
                         ),
                         Text(
-                          '${(totalWasteWeight > 0 ? totalWasteWeight : (totalReceivedWeight * 0.15)).toStringAsFixed(1)} كغ',
+                          '${(totalWasteWeight > 0 ? totalWasteWeight : 0.0).toStringAsFixed(1)} كغ',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -296,32 +296,6 @@ class _CustomerDashboardTabState extends State<CustomerDashboardTab> {
                         ),
                       ],
                     ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Yield vs Waste Visual Progress Bar
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('نسبة الإنتاج الممتاز (بريميوم/ديلايت): 85%', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.navy)),
-                          Text('الفاقد: 15%', style: TextStyle(fontSize: 11, color: Color(0xFFE65100))),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: LinearProgressIndicator(
-                          value: 0.85,
-                          minHeight: 10,
-                          backgroundColor: const Color(0xFFFFCC80),
-                          valueColor: const AlwaysStoppedAnimation<Color>(AppColors.navy),
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),
