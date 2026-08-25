@@ -87,15 +87,15 @@ class FullPalletInfoDialog extends StatelessWidget {
               const Divider(height: 24, thickness: 1),
 
               // Comprehensive Pallet Details Grid
-              _buildInfoRow('العميل / المالك:', pallet.customerName, icon: Icons.person_rounded),
+              _buildInfoRow('العميل / المالك:', pallet.customerName ?? 'غير محدد', icon: Icons.person_rounded),
               _buildInfoRow('المزرعة والمنطقة:', pallet.farmName ?? 'مزرعة عامة', icon: Icons.landscape_rounded),
               _buildInfoRow('تاريخ الاستلام والوزن:', dateFormatted, icon: Icons.calendar_today_rounded),
               _buildInfoRow('الموقع الحالي في المستودع:', pallet.displayLocation, icon: Icons.location_on_rounded, isHighlight: true),
-              _buildInfoRow('الصنف والحجم:', '${pallet.variety} - ${pallet.size}', icon: Icons.eco_rounded),
+              _buildInfoRow('الصنف والحجم:', '${pallet.category ?? "مجهول"} - ${pallet.size ?? "مشكل"}', icon: Icons.eco_rounded),
               _buildInfoRow('عدد الصناديق:', '${pallet.boxCount} صندوق', icon: Icons.inventory_2_rounded),
               _buildInfoRow('الوزن الصافي للتمر:', '${pallet.netWeight.toStringAsFixed(1)} كغ', icon: Icons.scale_rounded, isBold: true),
               _buildInfoRow('الوزن الإجمالي القائم:', '${pallet.grossWeight.toStringAsFixed(1)} كغ', icon: Icons.line_weight_rounded),
-              _buildInfoRow('وزن الطبلية فارغة:', '${pallet.palletTareWeight.toStringAsFixed(1)} كغ', icon: Icons.layers_outlined),
+              _buildInfoRow('وزن الطبلية فارغة:', '${pallet.emptyPalletWeight.toStringAsFixed(1)} كغ', icon: Icons.layers_outlined),
               _buildInfoRow('حالة التسليم:', pallet.status == 'delivered' ? 'تم تسليمها للعميل' : 'موجودة بالمستودع', icon: Icons.local_shipping_rounded),
 
               if (pallet.pairedPalletCode != null) ...[

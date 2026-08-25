@@ -929,6 +929,21 @@ class SupabaseService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Update any pallet properties (e.g. status consumed)
+  Future<void> updatePallet(PalletModel updatedPallet) async {
+    final index = _pallets.indexWhere((p) => p.id == updatedPallet.id);
+    if (index != -1) {
+      _pallets[index] = updatedPallet;
+      await StorageService.cachePallets(_pallets);
+      if (_supabase != null) {
+        try {
+          await _supabase!.from('pallets').upsert(updatedPallet.toJson());
+        } catch (_) {}
+      }
+      notifyListeners();
+    }
+  }
+
   // --- Sorting Operations (Pre-Sort & Auto-Sort) ---
 
   /// Returns all booked dates for a specific sorting line (presort vs autosort)
