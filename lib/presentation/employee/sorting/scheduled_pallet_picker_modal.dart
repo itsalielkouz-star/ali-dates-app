@@ -333,15 +333,45 @@ class _ScheduledPalletPickerModalState extends State<ScheduledPalletPickerModal>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'طبالي يوم ${DateFormat('dd/MM/yyyy').format(_selectedDate)} (${batchesForSelectedDate.length})',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.navy),
+                Row(
+                  children: [
+                    Text(
+                      'طبالي يوم ${DateFormat('dd/MM/yyyy').format(_selectedDate)} (${batchesForSelectedDate.length})',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.navy),
+                    ),
+                    if (batchesForSelectedDate.isNotEmpty) ...[
+                      const SizedBox(width: 6),
+                      Text(
+                        '| محدد: ${_selectedBatchIds.length}',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: lineTheme),
+                      ),
+                    ],
+                  ],
                 ),
-                if (batchesForSelectedDate.isNotEmpty)
-                  Text(
-                    'محدد: ${_selectedBatchIds.length}',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: lineTheme),
+                // Direct shortcut button to schedule more pallets on this selected day
+                InkWell(
+                  onTap: () => _openScheduleNewPalletDialog(context, isAuto, presetDate: _selectedDate),
+                  borderRadius: BorderRadius.circular(6),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: lineSoftBg,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: lineTheme.withAlpha(90)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.add_rounded, size: 14, color: lineDarkText),
+                        const SizedBox(width: 2),
+                        Text(
+                          'جدولة طبلية بهذا اليوم +',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: lineDarkText),
+                        ),
+                      ],
+                    ),
                   ),
+                ),
               ],
             ),
             const SizedBox(height: 6),
@@ -353,11 +383,23 @@ class _ScheduledPalletPickerModalState extends State<ScheduledPalletPickerModal>
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.event_busy_rounded, color: Colors.grey.shade400, size: 36),
+                          Icon(Icons.event_available_rounded, color: Colors.grey.shade400, size: 36),
                           const SizedBox(height: 6),
                           Text(
                             'لا توجد طبالي مجدولة في هذا اليوم (${DateFormat('yyyy/MM/dd').format(_selectedDate)})',
                             style: const TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 8),
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: lineTheme,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            icon: const Icon(Icons.schedule_send_rounded, size: 16),
+                            label: const Text('جدولة طبلية جديدة لهذا اليوم', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                            onPressed: () => _openScheduleNewPalletDialog(context, isAuto, presetDate: _selectedDate),
                           ),
                         ],
                       ),
@@ -554,7 +596,7 @@ class _ScheduledPalletPickerModalState extends State<ScheduledPalletPickerModal>
     Navigator.of(context).pop();
   }
 
-  void _openScheduleNewPalletDialog(BuildContext context, bool isAuto) {
+  void _openScheduleNewPalletDialog(BuildContext context, bool isAuto, {DateTime? presetDate}) {
     final service = SupabaseService();
     // Available warehouse raw/stored pallets that are not currently being sorted or delivered
     final availablePallets = service.pallets.where((p) {
@@ -569,7 +611,7 @@ class _ScheduledPalletPickerModalState extends State<ScheduledPalletPickerModal>
     }).toList();
 
     PalletModel? selectedPallet = availablePallets.isNotEmpty ? availablePallets.first : null;
-    DateTime scheduleDate = _selectedDate;
+    DateTime scheduleDate = presetDate ?? _selectedDate;
 
     showDialog(
       context: context,
