@@ -34,51 +34,154 @@ class DeliveryDatesScreen extends StatefulWidget {
 class _DeliveryDatesScreenState extends State<DeliveryDatesScreen> {
   final Set<String> _scannedPalletIds = {};
 
-  void _simulateQrScanForPallet(PalletModel pallet) {
+  void _openQrScannerForPallet(PalletModel pallet) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            const Icon(Icons.qr_code_scanner_rounded, color: AppColors.navy),
-            const SizedBox(width: 8),
-            Text('مسح طبلية: ${pallet.palletCode}'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('تم التحقق ومطابقة رمز الطبلية بنجاح بنظام الباركود.'),
-            const SizedBox(height: 10),
-            Text('الصنف: ${pallet.category ?? "مفروز آلي"} | الحجم: ${pallet.size ?? "عام"}'),
-            Text('الوزن: ${pallet.netWeight} كغ | الموقع: ${pallet.displayLocation}'),
-          ],
-        ),
-        actions: [
-          OutlinedButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.check_rounded),
-            label: const Text('تسليم هذه الطبلية'),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              setState(() {
-                _scannedPalletIds.add(pallet.id);
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('تمت إضافة الطبلية (${pallet.palletCode}) لقائمة التسليم'),
-                  backgroundColor: AppColors.success,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          constraints: const BoxConstraints(maxWidth: 450),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.navyUltraLight,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.qr_code_scanner_rounded, color: AppColors.navy, size: 24),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'مسح وتأكيد طبلية: ${pallet.palletCode}',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.navy),
+                        ),
+                        const Text('وجّه الماسح الضوئي / الكاميرا لمطابقة الرمز قبل التسليم', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.of(ctx).pop(),
+                  ),
+                ],
+              ),
+              const Divider(height: 20),
+
+              // Animated Scanning Camera Viewfinder
+              Container(
+                height: 180,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.dateGold, width: 2),
                 ),
-              );
-            },
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    const Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.camera_alt_rounded, color: Colors.white70, size: 40),
+                        SizedBox(height: 8),
+                        Text(
+                          'جاري قراءة رمز QR / الباركود...',
+                          style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      width: 130,
+                      height: 130,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: AppColors.success, width: 2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 14),
+
+              // Pallet Verified Info Card
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDF4),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFBBF7D0)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'الصنف: ${pallet.category ?? "مفروز آلي"} (${pallet.size ?? "عام"})',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.navy),
+                        ),
+                        Text('الموقع: ${pallet.displayLocation}', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                      ],
+                    ),
+                    Text(
+                      '${pallet.netWeight.toStringAsFixed(1)} كـغ',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF16A34A)),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      child: const Text('إلغاء'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.navy,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      icon: const Icon(Icons.check_circle_rounded, color: AppColors.dateGold, size: 18),
+                      label: const Text('تأكيد مسح وتسليم الطبلية', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        setState(() {
+                          _scannedPalletIds.add(pallet.id);
+                        });
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('✅ تم مسح وتأكيد الطبلية (${pallet.palletCode}) بنجاح'),
+                            backgroundColor: AppColors.success,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -86,7 +189,10 @@ class _DeliveryDatesScreenState extends State<DeliveryDatesScreen> {
   Future<void> _handleFinishDelivery() async {
     if (_scannedPalletIds.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى مسح واختيار طبلية واحدة على الأقل للتسليم')),
+        const SnackBar(
+          content: Text('يرجى مسح واختيار طبلية واحدة على الأقل للتسليم'),
+          backgroundColor: AppColors.warning,
+        ),
       );
       return;
     }
@@ -98,21 +204,32 @@ class _DeliveryDatesScreenState extends State<DeliveryDatesScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
-            Icon(Icons.help_outline_rounded, color: AppColors.navy),
+            Icon(Icons.local_shipping_rounded, color: AppColors.navy),
             SizedBox(width: 8),
-            Text('تأكيد إنهاء التسليم'),
+            Text('تأكيد تسليم الشحنة وتوقيع السائق'),
           ],
         ),
-        content: Text(
-          'هل أنت متأكد من تسليم ${_scannedPalletIds.length} طبلية للعميل (${widget.customer.name})؟',
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'هل أنت متأكد من تسليم ${_scannedPalletIds.length} طبلية تم مسحها بنجاح للعميل (${widget.customer.name})؟',
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'السائق المستلم: ${widget.shipment.driverName} | المركبة: ${widget.shipment.plateNumber}',
+              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            ),
+          ],
         ),
         actions: [
           OutlinedButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('إلغاء')),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.navy),
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('نعم، تأكيد وتوقيع السند'),
+            child: const Text('المتابعة لتوقيع السائق ✍️', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -120,16 +237,19 @@ class _DeliveryDatesScreenState extends State<DeliveryDatesScreen> {
 
     if (confirm != true) return;
 
-    // 1. Digital Signature Pad
-    final signatureBytes = await SignatureDialog.show(
+    // 1. Digital Signature Pad for Driver / Receiver
+    final driverSignatureBytes = await SignatureDialog.show(
       context,
-      title: 'توقيع سند تسليم البضاعة',
-      signerRole: 'السائق المستلم / موظف المصنع',
+      title: 'توقيع السائق المستلم للبضاعة ✍️',
+      signerRole: 'السائق: ${widget.shipment.driverName} (مركبة: ${widget.shipment.plateNumber})',
     );
 
-    if (signatureBytes == null && mounted) {
+    if (driverSignatureBytes == null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يجب توقيع السند لإنهاء التسليم')),
+        const SnackBar(
+          content: Text('⚠️ يجب توقيع السائق المستلم لاعتماد وتسليم السند'),
+          backgroundColor: AppColors.error,
+        ),
       );
       return;
     }
@@ -143,11 +263,11 @@ class _DeliveryDatesScreenState extends State<DeliveryDatesScreen> {
       shipment: widget.shipment,
     );
 
-    // 3. Generate PDF Delivery Note
-    final pdfBytes = await PdfGenerator.generateDeliveryNotePdf(
+    // 3. Generate PDF Delivery Note with Driver Signature
+    final pdfBytes = await PdfGenerator.generateDeliveryReceiptPdf(
       shipment: widget.shipment,
       pallets: deliveredList,
-      signatureBytes: signatureBytes,
+      signatureBytes: driverSignatureBytes,
     );
 
     // 4. Save to Customer Archive
@@ -350,7 +470,7 @@ class _DeliveryDatesScreenState extends State<DeliveryDatesScreen> {
                               backgroundColor: AppColors.navy,
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                             ),
-                            onPressed: () => _simulateQrScanForPallet(pallet),
+                            onPressed: () => _openQrScannerForPallet(pallet),
                           ),
                   ),
                 );
