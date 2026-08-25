@@ -205,12 +205,12 @@ class _CustomerDocumentsTabState extends State<CustomerDocumentsTab> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          // WhatsApp Share Button
+                          // Share Button
                           OutlinedButton.icon(
-                            icon: const Icon(Icons.share_rounded, size: 16, color: Color(0xFF25D366)),
-                            label: const Text('مشاركة عبر واتساب', style: TextStyle(fontSize: 11, color: Color(0xFF1E7E34), fontWeight: FontWeight.bold)),
+                            icon: const Icon(Icons.share_rounded, size: 16, color: AppColors.navy),
+                            label: const Text('المشاركة', style: TextStyle(fontSize: 11, color: AppColors.navy, fontWeight: FontWeight.bold)),
                             style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Color(0xFF25D366)),
+                              side: const BorderSide(color: AppColors.navy),
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                             ),
                             onPressed: () {
