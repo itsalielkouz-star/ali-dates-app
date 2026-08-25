@@ -255,8 +255,8 @@ class SupabaseService extends ChangeNotifier {
 
   /// Sets up a dedicated test customer with full datasets (farms, pallets in freezers, sorting breakdowns, documents, harvesting)
   void _ensureTestCustomerWithFullData() {
-    const testCustomerId = 'cust_test_alialkouz_demo';
-    const testPhone = '0799001122';
+    const testCustomerId = 'cust_test_0791234567';
+    const testPhone = '0791234567';
     const testName = 'مزرعة الشيخ ناصر الراجحي (حساب تجريبي)';
 
     // 1. Profile
@@ -469,7 +469,7 @@ class SupabaseService extends ChangeNotifier {
       ]);
     }
 
-    // 5. Official Documents (عقد فرز، إشعار استلام، وفاتورة)
+    // 5. Official Documents (عقد فرز، إشعار استلام، وفاتورة تصفية)
     if (!_documents.any((d) => d.customerId == testCustomerId)) {
       final now = DateTime.now();
       _documents.addAll([
@@ -477,28 +477,37 @@ class SupabaseService extends ChangeNotifier {
           id: 'doc_contract_01',
           customerId: testCustomerId,
           customerName: testName,
-          title: 'عقد فرز وتعبئة محصول موسم 2026',
+          title: 'عقد فرز وتعبئة وتخزين محصول موسم 2026',
           docType: 'sorting_contract',
-          fileName: 'عقد_فرز_2026.pdf',
+          fileName: 'عقد_فرز_وتعبئة_2026.pdf',
           createdAt: now.subtract(const Duration(days: 10)),
         ),
         DocumentModel(
           id: 'doc_receipt_02',
           customerId: testCustomerId,
           customerName: testName,
-          title: 'سند استلام واستيداع 3 طبالي مجهول',
+          title: 'سند استلام واستيداع 3 طبالي مجهول (PAL-2026-N01..N03)',
           docType: 'receiving_receipt',
-          fileName: 'سند_استلام_طبالي.pdf',
+          fileName: 'سند_استلام_واستيداع.pdf',
           createdAt: now.subtract(const Duration(days: 4)),
         ),
         DocumentModel(
           id: 'doc_invoice_03',
           customerId: testCustomerId,
           customerName: testName,
-          title: 'تقرير وفاتورة تصفية الفرز الآلي (دفعة #108)',
+          title: 'تقرير وفاتورة تصفية الفرز الآلي المعتمدة (دفعة #108)',
           docType: 'sorting_report',
           fileName: 'تقرير_تصفية_فرز_108.pdf',
           createdAt: now.subtract(const Duration(days: 1)),
+        ),
+        DocumentModel(
+          id: 'doc_delivery_04',
+          customerId: testCustomerId,
+          customerName: testName,
+          title: 'سند تسليم إرسالية كرتون مجهول بريميوم',
+          docType: 'delivery_note',
+          fileName: 'سند_تسليم_بضاعة.pdf',
+          createdAt: now.subtract(const Duration(hours: 12)),
         ),
       ]);
     }
