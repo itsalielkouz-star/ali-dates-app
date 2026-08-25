@@ -21,13 +21,13 @@ class SortingOutputItem {
     required this.size,
     required this.boxCount,
     double? weight,
-    this.isCardboard = true,
-    this.boxTareWeight = 5.0,
+    this.isCardboard = false,
+    this.boxTareWeight = 0.95,
     this.palletTareWeight = 25.0,
     double? grossWeight,
     this.isFull = false,
-  })  : weight = weight ?? (boxCount * 5.0),
-        grossWeight = grossWeight ?? ((weight ?? (boxCount * 5.0)) + (boxCount * (isCardboard ? 0.5 : 1.0)) + (palletTareWeight));
+  })  : weight = weight ?? (isCardboard ? (boxCount * 5.0) : (boxCount * 5.0)),
+        grossWeight = grossWeight ?? ((weight ?? (boxCount * 5.0)) + (boxCount * (isCardboard ? 0.5 : 0.95)) + (palletTareWeight));
 
   SortingOutputItem copyWith({
     String? id,

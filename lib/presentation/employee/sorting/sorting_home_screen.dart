@@ -764,7 +764,7 @@ class _SortingHomeScreenState extends State<SortingHomeScreen> with SingleTicker
   void _openAddOutputPalletDialog(SortingBatchModel batch, bool isAuto) {
     String selectedCategory = isAuto ? AppConstants.autoSortCategories.first : AppConstants.preSortDefects.first;
     String selectedSize = isAuto ? AppConstants.autoSortSizes.first : 'مشكل';
-    bool isCardboard = true;
+    bool isCardboard = false;
     final boxCountController = TextEditingController(text: '30');
     final palletTareController = TextEditingController(text: '${AppConstants.defaultEmptyPalletWeight}');
     final boxTareController = TextEditingController(text: '0.95');
