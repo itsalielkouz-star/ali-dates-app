@@ -3,6 +3,8 @@ import '../../core/constants/app_colors.dart';
 import '../../data/services/supabase_service.dart';
 import '../auth/login_screen.dart';
 import '../widgets/app_brand_logo.dart';
+import '../widgets/full_pallet_info_dialog.dart';
+import '../widgets/qr_camera_scanner_dialog.dart';
 import 'receiving/receiving_step1_screen.dart';
 import 'transfer/transfer_home_screen.dart';
 import 'sorting/sorting_home_screen.dart';
@@ -208,6 +210,52 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
+                      // Quick Instant Scanner Button (مسح فوري للطبلية لعرض كامل التفاصيل)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.navy,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                            elevation: 4,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              side: const BorderSide(color: AppColors.dateGold, width: 1.5),
+                            ),
+                          ),
+                          icon: const Icon(Icons.qr_code_scanner_rounded, size: 26, color: AppColors.dateGold),
+                          label: const Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'مسح سريع (Scan Only)',
+                                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+                                  ),
+                                  Text(
+                                    'تشغيل فوري للكاميرا وعرض كافة تفاصيل الطبلية والموقع',
+                                    style: TextStyle(fontSize: 10.5, color: Colors.white70),
+                                  ),
+                                ],
+                              ),
+                              Icon(Icons.camera_alt_rounded, color: Colors.white, size: 20),
+                            ],
+                          ),
+                          onPressed: () {
+                            QrCameraScannerDialog.show(
+                              context,
+                              onPalletScanned: (scannedPallet) {
+                                FullPalletInfoDialog.show(context, scannedPallet);
+                              },
+                            );
+                          },
+                        ),
+                      ),
+
                       // 5th Master Field Operation: القطاف والحصاد الميداني (Harvesting)
                       Container(
                         margin: const EdgeInsets.only(bottom: 12),

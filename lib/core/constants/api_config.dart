@@ -1,16 +1,13 @@
 /// API configuration for Supabase and Odoo ERP
-/// Secrets are injected via compile-time environment variables:
-/// flutter run --dart-define-from-file=.env
-/// flutter build web --release --dart-define-from-file=.env
 class ApiConfig {
-  // Supabase Credentials (injected via .env)
-  static const String supabaseUrl = String.fromEnvironment('SUPABASE_URL');
-  static const String supabasePublishableKey = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
-  static const String supabaseSecretKey = String.fromEnvironment('SUPABASE_SECRET_KEY');
+  // Supabase Credentials
+  static const String supabaseUrl = 'https://xyjvfsudlmfulmiqiepi.supabase.co';
+  static const String supabasePublishableKey =
+      'sb_publishable_XJnnzHytoxj5XZWj4y57iQ_KBQKlwx9';
 
-  // Odoo ERP Credentials (injected via .env)
-  static const String odooUrl = String.fromEnvironment('ODOO_URL');
-  static const String odooDatabase = String.fromEnvironment('ODOO_DATABASE');
-  static const String odooEmail = String.fromEnvironment('ODOO_EMAIL');
-  static const String odooApiKey = String.fromEnvironment('ODOO_API_KEY');
+  // Odoo ERP Credentials
+  static const String odooUrl = 'https://odoo-ps-psae-ali-dates.odoo.com';
+  static const String odooDatabase = 'odoo-ps-psae-ali-dates-main-31836766';
+  static const String odooEmail = 'husam@alidatesjo.com';
+  static const String odooApiKey = 'd0c9ec1328d96f8299262db34f48dba422ecf87c';
 }

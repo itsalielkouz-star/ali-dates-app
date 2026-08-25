@@ -82,7 +82,7 @@ class PalletStickerWidget extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Right: Supplier Initials (3 letters) & Receiving Date
+                // Right: Supplier Initials & Receiving Date
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -92,23 +92,24 @@ class PalletStickerWidget extends StatelessWidget {
                           const Text(
                             'المورد: ',
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: 15,
                               fontWeight: FontWeight.bold,
                               color: Colors.black,
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                             decoration: BoxDecoration(
-                              color: Colors.black,
+                              color: Colors.white,
+                              border: Border.all(color: Colors.black, width: 2),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
                               supplierInitials,
                               style: const TextStyle(
-                                fontSize: 15,
+                                fontSize: 18,
                                 fontWeight: FontWeight.w900,
-                                color: Colors.white,
+                                color: Colors.black,
                                 letterSpacing: 1.5,
                               ),
                             ),
@@ -119,9 +120,9 @@ class PalletStickerWidget extends StatelessWidget {
                       Text(
                         'تاريخ الاستلام: $dateFormatted',
                         style: const TextStyle(
-                          fontSize: 12.5,
+                          fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: Colors.black,
                         ),
                       ),
                     ],
@@ -130,11 +131,11 @@ class PalletStickerWidget extends StatelessWidget {
 
                 const SizedBox(width: 8),
 
-                // Left: Crisp Black Ali Dates Logo OUTSIDE QR Code
+                // Left: Enlarged Crisp Black Ali Dates Logo (No background)
                 Image.asset(
                   'assets/images/ali_dates_logo.png',
-                  width: 55,
-                  height: 55,
+                  width: 75,
+                  height: 75,
                   fit: BoxFit.contain,
                   color: Colors.black,
                 ),
@@ -142,9 +143,9 @@ class PalletStickerWidget extends StatelessWidget {
             ),
           ),
 
-          const Divider(height: 1, thickness: 1.5, color: Colors.black),
+          const Divider(height: 1, thickness: 2, color: Colors.black),
 
-          // 3. Middle Section: Enlarged QR Code (125px) + Product Type Badge + Pallet Code
+          // 3. Middle Section: Enlarged QR Code (135px) + Product Type Badge + Big Pallet Code
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Row(
@@ -155,13 +156,13 @@ class PalletStickerWidget extends StatelessWidget {
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    border: Border.all(color: Colors.black, width: 1.5),
+                    border: Border.all(color: Colors.black, width: 2),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: QrImageView(
                     data: pallet.palletCode,
                     version: QrVersions.auto,
-                    size: 125, // Enlarged for ultra fast scanning
+                    size: 135, // Enlarged for ultra fast scanning
                     padding: EdgeInsets.zero,
                     gapless: true,
                     foregroundColor: Colors.black,
@@ -169,20 +170,21 @@ class PalletStickerWidget extends StatelessWidget {
                 ),
                 const SizedBox(width: 14),
 
-                // Right Details: تمر خام أو تمر مفروز أولي & Pallet Code
+                // Right Details: تمر خام أو تمر مفروز أولي & Pallet Code (Clean white background)
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Product Status Badge: تمر خام أو تمر مفروز أولي (Arabic bigger than English)
+                      // Product Status Badge: Clean white border
                       Container(
+                        width: double.infinity,
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: isPresorted ? const Color(0xFFE0F2FE) : const Color(0xFFFEF3C7),
+                          color: Colors.white,
                           border: Border.all(
-                            color: isPresorted ? const Color(0xFF0284C7) : const Color(0xFFD97706),
-                            width: 1.2,
+                            color: Colors.black,
+                            width: 1.8,
                           ),
                           borderRadius: BorderRadius.circular(6),
                         ),
@@ -192,17 +194,17 @@ class PalletStickerWidget extends StatelessWidget {
                             Text(
                               productStatusArabic,
                               style: const TextStyle(
-                                fontSize: 16.5,
+                                fontSize: 17,
                                 fontWeight: FontWeight.w900,
                                 color: Colors.black,
                               ),
                             ),
                             Text(
                               productStatusEnglish,
-                              style: TextStyle(
-                                fontSize: 10.5,
+                              style: const TextStyle(
+                                fontSize: 11,
                                 fontWeight: FontWeight.w700,
-                                color: isPresorted ? const Color(0xFF0369A1) : const Color(0xFFB45309),
+                                color: Colors.black87,
                               ),
                             ),
                           ],
@@ -210,29 +212,30 @@ class PalletStickerWidget extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
 
-                      // Pallet Reference Code Badge
+                      // Pallet Reference Code Badge: Extra Big & Pure White Background
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: Colors.black87, width: 1),
+                          border: Border.all(color: Colors.black, width: 2),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
                               'رمز الطبلية المرجعي:',
-                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black54),
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black87),
                             ),
                             Text(
                               pallet.palletCode,
                               style: const TextStyle(
-                                fontSize: 15,
+                                fontSize: 18,
                                 fontWeight: FontWeight.w900,
                                 fontFamily: 'monospace',
                                 color: Colors.black,
+                                letterSpacing: 0.5,
                               ),
                             ),
                           ],

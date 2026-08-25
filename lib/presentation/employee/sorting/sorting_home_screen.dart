@@ -38,6 +38,10 @@ class _SortingHomeScreenState extends State<SortingHomeScreen> with SingleTicker
   // Expanded/currently focused batch ID on screen
   String? _expandedBatchId;
 
+  // Customizable Carton Sizes (أحجام وأوزان الكراتين المتاحة بالكيلوغرام)
+  final List<double> _cartonSizesKg = [5.0, 1.0, 2.0, 3.0, 4.0, 10.0];
+  double _selectedCartonSizeKg = 5.0;
+
   @override
   void initState() {
     super.initState();
@@ -47,6 +51,110 @@ class _SortingHomeScreenState extends State<SortingHomeScreen> with SingleTicker
     });
 
     // Batches should only be loaded when user opens the planner and selects pallets
+  }
+
+  void _openManageCartonSizesModal(StateSetter setParentModalState) {
+    final newSizeCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSizeModalState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.straighten_rounded, color: AppColors.navy),
+                SizedBox(width: 8),
+                Text('إدارة أحجام وأوزان الكرتون', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.navy)),
+              ],
+            ),
+            content: SizedBox(
+              width: 380,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: newSizeCtrl,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: const InputDecoration(
+                            labelText: 'إضافة حجم كرتون جديد',
+                            hintText: 'مثال: 0.5 أو 7.5',
+                            suffixText: 'كغ',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.navy),
+                        icon: const Icon(Icons.add_rounded, color: Colors.white, size: 18),
+                        label: const Text('إضافة', style: TextStyle(color: Colors.white)),
+                        onPressed: () {
+                          final val = double.tryParse(newSizeCtrl.text.trim());
+                          if (val != null && val > 0 && !_cartonSizesKg.contains(val)) {
+                            setState(() {
+                              _cartonSizesKg.add(val);
+                              _cartonSizesKg.sort();
+                              _selectedCartonSizeKg = val;
+                            });
+                            setSizeModalState(() {});
+                            setParentModalState(() {});
+                            newSizeCtrl.clear();
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('الأحجام والأوزان المتاحة الحالية:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _cartonSizesKg.map((sz) {
+                      return Chip(
+                        backgroundColor: _selectedCartonSizeKg == sz ? AppColors.navy : AppColors.navyUltraLight,
+                        label: Text(
+                          '$sz كغ',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: _selectedCartonSizeKg == sz ? Colors.white : AppColors.navy,
+                          ),
+                        ),
+                        deleteIcon: const Icon(Icons.close_rounded, size: 16),
+                        deleteIconColor: _selectedCartonSizeKg == sz ? Colors.white70 : AppColors.error,
+                        onDeleted: _cartonSizesKg.length > 1
+                            ? () {
+                                setState(() {
+                                  _cartonSizesKg.remove(sz);
+                                  if (_selectedCartonSizeKg == sz) {
+                                    _selectedCartonSizeKg = _cartonSizesKg.first;
+                                  }
+                                });
+                                setSizeModalState(() {});
+                                setParentModalState(() {});
+                              }
+                            : null,
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.navy),
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('تم'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   void _loadSavedActiveBatches() {
@@ -369,8 +477,8 @@ class _SortingHomeScreenState extends State<SortingHomeScreen> with SingleTicker
                           const SizedBox(width: 8),
                           Text(
                             batch.sourcePalletCodes.length > 1
-                                ? 'طبالي المصدر (${batch.sourcePalletCodes.length}): ${batch.sourcePalletCodes.join(" + ")}'
-                                : 'طبلية المصدر: ${batch.sourcePalletCode ?? batch.sourcePalletId}',
+                                ? 'طبالي الإدخال (${batch.sourcePalletCodes.length}): ${batch.sourcePalletCodes.join(" + ")}'
+                                : 'طبلية الإدخال: ${batch.sourcePalletCode ?? batch.sourcePalletId}',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
@@ -422,7 +530,7 @@ class _SortingHomeScreenState extends State<SortingHomeScreen> with SingleTicker
                                     Icon(Icons.qr_code_scanner_rounded, color: Colors.amber.shade900, size: 14),
                                     const SizedBox(width: 4),
                                     Text(
-                                      'مسح الطبلية لبدء الفرز 📷',
+                                      'مسح للفرز 📷',
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.bold,
@@ -476,7 +584,7 @@ class _SortingHomeScreenState extends State<SortingHomeScreen> with SingleTicker
                         ),
                       ),
                       Text(
-                        'الوزن المدخل: ${batch.inputWeight} كغ',
+                        'إجمالي وزن الإدخال: ${batch.inputWeight.toStringAsFixed(1)} كغ',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
@@ -490,14 +598,135 @@ class _SortingHomeScreenState extends State<SortingHomeScreen> with SingleTicker
             ),
           ),
 
-          // 2. Expanded Workspace Detail
+          // 2. Expanded Workspace Detail (Top Half Inputs + Bottom Half Outputs)
           if (isExpanded) ...[
             Padding(
               padding: const EdgeInsets.all(14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Dynamic Decreasing Amount Display & Warning
+                  // --- SECTION 1: TOP HALF - INPUT PALLETS (طبالي الإدخال للمشغل) ---
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.navy.withAlpha(50)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.input_rounded, color: AppColors.navy, size: 18),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'الجزء العلوي: طبالي الإدخال (Inputs) - [${batch.sourcePalletCodes.length}]',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.navy),
+                                ),
+                              ],
+                            ),
+                            Text(
+                              'الوزن المدخل: ${batch.inputWeight.toStringAsFixed(1)} كغ',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.dateBronze),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+
+                        // List of source pallets with Empty Pallet Button
+                        ...batch.sourcePalletCodes.map((code) {
+                          final matchedPallet = SupabaseService().findPalletByCode(code);
+                          final isConsumed = matchedPallet?.status == 'consumed';
+
+                          return Container(
+                            margin: const EdgeInsets.symmetric(vertical: 3),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isConsumed ? Colors.grey.shade100 : Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: isConsumed ? Colors.grey.shade300 : AppColors.border,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      isConsumed ? Icons.check_circle_outline_rounded : Icons.inventory_2_outlined,
+                                      size: 18,
+                                      color: isConsumed ? AppColors.textMuted : AppColors.navy,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      code,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 13,
+                                        fontFamily: 'monospace',
+                                        decoration: isConsumed ? TextDecoration.lineThrough : null,
+                                        color: isConsumed ? AppColors.textMuted : AppColors.navy,
+                                      ),
+                                    ),
+                                    if (matchedPallet != null) ...[
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        '(${matchedPallet.netWeight.toStringAsFixed(1)} كغ | ${matchedPallet.boxCount} صندوق)',
+                                        style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+
+                                // "طبلية فرغت" Empty Pallet Button
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: isConsumed ? Colors.grey.shade400 : const Color(0xFFE65100),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    minimumSize: Size.zero,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                  ),
+                                  icon: Icon(
+                                    isConsumed ? Icons.done_all_rounded : Icons.remove_circle_outline_rounded,
+                                    size: 14,
+                                  ),
+                                  label: Text(
+                                    isConsumed ? 'تم التفريغ ✓' : 'طبلية فرغت 🗑️',
+                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                                  ),
+                                  onPressed: () async {
+                                    if (matchedPallet != null) {
+                                      final newStatus = isConsumed ? 'in_warehouse' : 'consumed';
+                                      await SupabaseService().updatePallet(matchedPallet.copyWith(status: newStatus));
+                                      setState(() {});
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(isConsumed
+                                              ? 'تم إعادة تعيين الطبلية ($code) كطبلية غير مفرغة'
+                                              : 'تم تأكيد تفريغ الطبلية ($code) وانتهت من المستودع بنجاح'),
+                                          backgroundColor: isConsumed ? AppColors.navy : AppColors.success,
+                                        ),
+                                      );
+                                    }
+                                  },
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  // --- SECTION 2: BOTTOM HALF - OUTPUT PALLETS (مخرجات الفرز) ---
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -538,7 +767,7 @@ class _SortingHomeScreenState extends State<SortingHomeScreen> with SingleTicker
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
                           icon: const Icon(Icons.add_rounded, size: 18, color: Colors.white),
-                          label: const Text('إضافة طبلية مخرجات', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+                          label: const Text('إضافة طبلية مخرجات +', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
                           onPressed: () => _openAddOutputPalletDialog(batch, isAuto),
                         ),
                       ],
@@ -552,7 +781,7 @@ class _SortingHomeScreenState extends State<SortingHomeScreen> with SingleTicker
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'طبالي المخرجات (${batch.outputPallets.length})',
+                        'الجزء السفلي: طبالي المخرجات (${batch.outputPallets.length})',
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.navy),
                       ),
                       const Text(
@@ -782,7 +1011,7 @@ class _SortingHomeScreenState extends State<SortingHomeScreen> with SingleTicker
           // Pure dates net weight calculation
           double netDatesWeight = 0.0;
           if (isCardboard) {
-            netDatesWeight = boxCount * 5.0; // Standard 5kg cardboard
+            netDatesWeight = boxCount * _selectedCartonSizeKg; // Dynamic carton size kg
           } else {
             final tareTotal = palletTare + (boxCount * boxTare);
             netDatesWeight = (gross - tareTotal) > 0 ? (gross - tareTotal) : 0.0;
@@ -861,7 +1090,43 @@ class _SortingHomeScreenState extends State<SortingHomeScreen> with SingleTicker
                         ],
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
+
+                    // Cardboard Size (kg) Dropdown with (+) Add/Manage Button
+                    if (isCardboard) ...[
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<double>(
+                              value: _cartonSizesKg.contains(_selectedCartonSizeKg) ? _selectedCartonSizeKg : _cartonSizesKg.first,
+                              decoration: const InputDecoration(
+                                labelText: 'وزن/حجم الكرتونة *',
+                                prefixIcon: Icon(Icons.straighten_rounded),
+                              ),
+                              items: _cartonSizesKg.map((sz) {
+                                return DropdownMenuItem(
+                                  value: sz,
+                                  child: Text('$sz كغ كرتون', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.navy)),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setState(() => _selectedCartonSizeKg = val);
+                                  setModalState(() {});
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton.filledTonal(
+                            icon: const Icon(Icons.tune_rounded),
+                            tooltip: 'إدارة أحجام وأوزان الكرتون (إضافة/حذف)',
+                            onPressed: () => _openManageCartonSizesModal(setModalState),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                    ],
                   ],
 
                   // Box Count
@@ -869,9 +1134,9 @@ class _SortingHomeScreenState extends State<SortingHomeScreen> with SingleTicker
                     controller: boxCountController,
                     keyboardType: TextInputType.number,
                     style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.navy),
-                    decoration: const InputDecoration(
-                      labelText: 'عدد الصناديق *',
-                      suffixText: 'صندوق',
+                    decoration: InputDecoration(
+                      labelText: isCardboard ? 'عدد الكراتين *' : 'عدد الصناديق *',
+                      suffixText: isCardboard ? 'كرتونة' : 'صندوق',
                     ),
                     onChanged: (_) => setModalState(() {}),
                   ),
@@ -1007,7 +1272,7 @@ class _SortingHomeScreenState extends State<SortingHomeScreen> with SingleTicker
 
           double netDatesWeight = 0.0;
           if (isCardboard) {
-            netDatesWeight = boxCount * 5.0;
+            netDatesWeight = boxCount * _selectedCartonSizeKg;
           } else {
             final tareTotal = palletTare + (boxCount * boxTare);
             netDatesWeight = (gross - tareTotal) > 0 ? (gross - tareTotal) : 0.0;
@@ -1082,16 +1347,51 @@ class _SortingHomeScreenState extends State<SortingHomeScreen> with SingleTicker
                         ],
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
+
+                    if (isCardboard) ...[
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<double>(
+                              value: _cartonSizesKg.contains(_selectedCartonSizeKg) ? _selectedCartonSizeKg : _cartonSizesKg.first,
+                              decoration: const InputDecoration(
+                                labelText: 'وزن/حجم الكرتونة *',
+                                prefixIcon: Icon(Icons.straighten_rounded),
+                              ),
+                              items: _cartonSizesKg.map((sz) {
+                                return DropdownMenuItem(
+                                  value: sz,
+                                  child: Text('$sz كغ كرتون', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.navy)),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setState(() => _selectedCartonSizeKg = val);
+                                  setModalState(() {});
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton.filledTonal(
+                            icon: const Icon(Icons.tune_rounded),
+                            tooltip: 'إدارة أحجام وأوزان الكرتون (إضافة/حذف)',
+                            onPressed: () => _openManageCartonSizesModal(setModalState),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                    ],
                   ],
 
                   TextFormField(
                     controller: boxCountController,
                     keyboardType: TextInputType.number,
                     style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.navy),
-                    decoration: const InputDecoration(
-                      labelText: 'عدد الصناديق *',
-                      suffixText: 'صندوق',
+                    decoration: InputDecoration(
+                      labelText: isCardboard ? 'عدد الكراتين *' : 'عدد الصناديق *',
+                      suffixText: isCardboard ? 'كرتونة' : 'صندوق',
                     ),
                     onChanged: (_) => setModalState(() {}),
                   ),

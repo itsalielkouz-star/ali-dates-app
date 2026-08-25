@@ -877,34 +877,35 @@ class PdfGenerator {
                         pw.Text(
                           'المورد: ',
                           style: pw.TextStyle(
-                            fontSize: 9.5 * scaleFactor,
+                            fontSize: 10.5 * scaleFactor,
                             fontWeight: pw.FontWeight.bold,
                             color: PdfColors.black,
                           ),
                         ),
                         pw.Container(
-                          padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                          padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                           decoration: pw.BoxDecoration(
-                            color: PdfColors.black,
+                            color: PdfColors.white,
+                            border: pw.Border.all(color: PdfColors.black, width: 1.5),
                             borderRadius: pw.BorderRadius.circular(2),
                           ),
                           child: pw.Text(
                             supplierInitials,
                             style: pw.TextStyle(
-                              fontSize: 10 * scaleFactor,
+                              fontSize: 12 * scaleFactor,
                               fontWeight: pw.FontWeight.bold,
-                              color: PdfColors.white,
+                              color: PdfColors.black,
                               letterSpacing: 1.2,
                             ),
                           ),
                         ),
                       ],
                     ),
-                    pw.SizedBox(height: 1.5),
+                    pw.SizedBox(height: 2),
                     pw.Text(
                       'تاريخ الاستلام: $dateStr',
                       style: pw.TextStyle(
-                        fontSize: 8 * scaleFactor,
+                        fontSize: 9 * scaleFactor,
                         fontWeight: pw.FontWeight.bold,
                         color: PdfColors.black,
                       ),
@@ -915,11 +916,11 @@ class PdfGenerator {
 
               pw.SizedBox(width: 4),
 
-              // Logo
+              // Enlarged Logo without background
               if (logoBytes != null)
                 pw.Container(
-                  width: 32 * scaleFactor,
-                  height: 32 * scaleFactor,
+                  width: 44 * scaleFactor,
+                  height: 44 * scaleFactor,
                   child: pw.Image(
                     pw.MemoryImage(logoBytes),
                     fit: pw.BoxFit.contain,
@@ -929,14 +930,14 @@ class PdfGenerator {
                 pw.Container(
                   padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                   decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.black)),
-                  child: pw.Text('تمور علي', style: pw.TextStyle(fontSize: 8 * scaleFactor, fontWeight: pw.FontWeight.bold)),
+                  child: pw.Text('تمور علي', style: pw.TextStyle(fontSize: 9 * scaleFactor, fontWeight: pw.FontWeight.bold)),
                 ),
             ],
           ),
 
-          pw.Divider(thickness: 1.0, color: PdfColors.black, height: 3),
+          pw.Divider(thickness: 1.2, color: PdfColors.black, height: 3),
 
-          // 2. Middle Section: Enlarged QR Code + Product State (تمر خام أو تمر مفروز أولي) + Pallet Code
+          // 2. Middle Section: Enlarged QR Code + Product State + Big Pallet Code
           pw.Row(
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
@@ -944,30 +945,31 @@ class PdfGenerator {
               pw.Container(
                 padding: const pw.EdgeInsets.all(1.5),
                 decoration: pw.BoxDecoration(
-                  border: pw.Border.all(color: PdfColors.black, width: 1),
+                  border: pw.Border.all(color: PdfColors.black, width: 1.2),
                   borderRadius: pw.BorderRadius.circular(2),
                 ),
                 child: pw.BarcodeWidget(
                   barcode: pw.Barcode.qrCode(),
                   data: pallet.palletCode,
                   color: PdfColors.black,
-                  width: 64 * scaleFactor, // Enlarged QR code
-                  height: 64 * scaleFactor,
+                  width: 72 * scaleFactor, // Enlarged QR code
+                  height: 72 * scaleFactor,
                 ),
               ),
               pw.SizedBox(width: 6),
 
-              // Right: Product State & Pallet Code
+              // Right: Product State & Pallet Code (Pure White, No Grey)
               pw.Expanded(
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   mainAxisAlignment: pw.MainAxisAlignment.center,
                   children: [
                     pw.Container(
-                      padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 2.5),
+                      width: double.infinity,
+                      padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 3),
                       decoration: pw.BoxDecoration(
-                        border: pw.Border.all(color: PdfColors.black, width: 0.8),
-                        color: PdfColors.grey100,
+                        border: pw.Border.all(color: PdfColors.black, width: 1.2),
+                        color: PdfColors.white,
                         borderRadius: pw.BorderRadius.circular(2),
                       ),
                       child: pw.Column(
@@ -976,7 +978,7 @@ class PdfGenerator {
                           pw.Text(
                             productStatusAr,
                             style: pw.TextStyle(
-                              fontSize: 11 * scaleFactor,
+                              fontSize: 12 * scaleFactor,
                               fontWeight: pw.FontWeight.bold,
                               color: PdfColors.black,
                             ),
@@ -984,8 +986,8 @@ class PdfGenerator {
                           pw.Text(
                             productStatusEn,
                             style: pw.TextStyle(
-                              fontSize: 7.5 * scaleFactor,
-                              color: PdfColors.grey800,
+                              fontSize: 8 * scaleFactor,
+                              color: PdfColors.black,
                             ),
                           ),
                         ],
@@ -993,23 +995,24 @@ class PdfGenerator {
                     ),
                     pw.SizedBox(height: 3),
                     pw.Container(
-                      padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      width: double.infinity,
+                      padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 3),
                       decoration: pw.BoxDecoration(
-                        color: PdfColors.grey200,
+                        color: PdfColors.white,
                         borderRadius: pw.BorderRadius.circular(2),
-                        border: pw.Border.all(color: PdfColors.grey600, width: 0.6),
+                        border: pw.Border.all(color: PdfColors.black, width: 1.4),
                       ),
                       child: pw.Column(
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
                           pw.Text(
                             'رمز الطبلية المرجعي:',
-                            style: pw.TextStyle(fontSize: 6.5 * scaleFactor, color: PdfColors.grey800),
+                            style: pw.TextStyle(fontSize: 7 * scaleFactor, color: PdfColors.black, fontWeight: pw.FontWeight.bold),
                           ),
                           pw.Text(
                             pallet.palletCode,
                             style: pw.TextStyle(
-                              fontSize: 9.5 * scaleFactor,
+                              fontSize: 12 * scaleFactor,
                               fontWeight: pw.FontWeight.bold,
                               color: PdfColors.black,
                             ),
