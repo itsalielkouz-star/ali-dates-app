@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../data/models/pallet_model.dart';
 import '../../../data/models/sorting_batch_model.dart';
 import '../../../data/services/supabase_service.dart';
 
@@ -112,6 +113,18 @@ class _ScheduledPalletPickerModalState extends State<ScheduledPalletPickerModal>
                     ],
                   ),
                 ),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: lineTheme,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  icon: const Icon(Icons.add_circle_outline_rounded, size: 16),
+                  label: const Text('جدولة طبلية', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                  onPressed: () => _openScheduleNewPalletDialog(context, isAuto),
+                ),
+                const SizedBox(width: 4),
                 IconButton(
                   icon: const Icon(Icons.close_rounded, color: AppColors.textMuted),
                   onPressed: () => Navigator.of(context).pop(),
@@ -460,5 +473,193 @@ class _ScheduledPalletPickerModalState extends State<ScheduledPalletPickerModal>
 
     widget.onBatchesAdded(finalBatchesToAdd);
     Navigator.of(context).pop();
+  }
+
+  void _openScheduleNewPalletDialog(BuildContext context, bool isAuto) {
+    final service = SupabaseService();
+    // Available warehouse raw/stored pallets that are not currently being sorted or delivered
+    final availablePallets = service.pallets.where((p) {
+      if (p.status == 'delivered' || p.status == 'consumed') return false;
+      if (isAuto) {
+        // Auto sort accepts presorted pallets or raw pallets
+        return true;
+      } else {
+        // Pre-sort accepts raw/un-presorted pallets
+        return !p.isPresorted;
+      }
+    }).toList();
+
+    PalletModel? selectedPallet = availablePallets.isNotEmpty ? availablePallets.first : null;
+    DateTime scheduleDate = _selectedDate;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            title: Row(
+              children: [
+                Icon(
+                  Icons.schedule_send_rounded,
+                  color: isAuto ? const Color(0xFF1565C0) : const Color(0xFFD84315),
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  isAuto ? 'جدولة طبلية للفرز الآلي' : 'جدولة طبلية للفرز الأولي',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.navy),
+                ),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'اختر الطبلية المتوفرة بالمستودع وحدد تاريخ إدخالها إلى خط الفرز:',
+                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(height: 14),
+
+                  if (availablePallets.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.shade50,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.amber.shade200),
+                      ),
+                      child: const Text(
+                        'لا توجد طبالي متوفرة بالمستودع حالياً قابلة للجدولة.',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.brown),
+                      ),
+                    )
+                  else ...[
+                    // Pallet Selection Dropdown
+                    DropdownButtonFormField<PalletModel>(
+                      value: selectedPallet,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'اختر الطبلية من المستودع *',
+                        prefixIcon: Icon(Icons.inventory_2_rounded),
+                      ),
+                      items: availablePallets.map((p) {
+                        return DropdownMenuItem(
+                          value: p,
+                          child: Text(
+                            '${p.palletCode} - ${p.customerName} (${p.netWeight.toStringAsFixed(1)} كغ) [${p.displayLocation}]',
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() => selectedPallet = val);
+                        }
+                      },
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    // Date Selection Card
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.navyUltraLight,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.navy.withAlpha(40)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.event_rounded, color: AppColors.navy, size: 20),
+                              const SizedBox(width: 8),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('تاريخ وموعد الفرز:', style: TextStyle(fontSize: 10, color: AppColors.textMuted)),
+                                  Text(
+                                    DateFormat('yyyy/MM/dd (EEEE)', 'ar').format(scheduleDate),
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.navy),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          TextButton.icon(
+                            style: TextButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: AppColors.navy,
+                            ),
+                            icon: const Icon(Icons.edit_calendar_rounded, size: 16),
+                            label: const Text('تغيير', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                            onPressed: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: scheduleDate,
+                                firstDate: DateTime.now().subtract(const Duration(days: 7)),
+                                lastDate: DateTime.now().add(const Duration(days: 90)),
+                              );
+                              if (picked != null) {
+                                setDialogState(() => scheduleDate = picked);
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('إلغاء', style: TextStyle(color: AppColors.textMuted)),
+              ),
+              if (availablePallets.isNotEmpty)
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isAuto ? const Color(0xFF1565C0) : const Color(0xFFD84315),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onPressed: () async {
+                    if (selectedPallet == null) return;
+
+                    // 1. Create scheduled sorting batch
+                    final createdBatch = await service.startSortingBatch(
+                      pallet: selectedPallet!,
+                      sortingType: widget.sortingType,
+                      scheduledDate: scheduleDate,
+                    );
+
+                    if (context.mounted) {
+                      Navigator.of(ctx).pop();
+                      setState(() {
+                        _selectedDate = scheduleDate;
+                        _focusedMonth = DateTime(scheduleDate.year, scheduleDate.month, 1);
+                        _selectedBatchIds.add(createdBatch.id);
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('✅ تمت جدولة الطبلية (${selectedPallet!.palletCode}) بنجاح بتاريخ ${DateFormat("yyyy/MM/dd").format(scheduleDate)}'),
+                          backgroundColor: AppColors.success,
+                        ),
+                      );
+                    }
+                  },
+                  child: const Text('حفظ الجدولة وإدراجها بالتقويم'),
+                ),
+            ],
+          );
+        },
+      ),
+    );
   }
 }
