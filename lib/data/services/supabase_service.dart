@@ -841,6 +841,14 @@ class SupabaseService extends ChangeNotifier {
     }
   }
 
+  PalletModel? findPalletById(String id) {
+    try {
+      return _pallets.firstWhere((p) => p.id == id || p.palletCode == id);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> updatePalletLocation({
     required String palletId,
     required String locationType,
