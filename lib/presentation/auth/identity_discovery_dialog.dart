@@ -194,7 +194,7 @@ class _IdentityDiscoveryDialogState extends State<IdentityDiscoveryDialog> {
 
                     const Divider(height: 20),
 
-                    // 2. Read-only Role Display (System Determined)
+                    // 2. Interactive Role Selection (Customer vs Employee)
                     Row(
                       children: [
                         Icon(
@@ -208,21 +208,36 @@ class _IdentityDiscoveryDialogState extends State<IdentityDiscoveryDialog> {
                           style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textMuted),
                         ),
                         const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: _isEmployee ? const Color(0xFFE8F5E9) : const Color(0xFFE3F2FD),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: _isEmployee ? const Color(0xFF81C784) : const Color(0xFF90CAF9),
+                        InkWell(
+                          onTap: () {
+                            setState(() {
+                              _isEmployee = !_isEmployee;
+                            });
+                          },
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: _isEmployee ? const Color(0xFFE8F5E9) : const Color(0xFFE3F2FD),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: _isEmployee ? const Color(0xFF81C784) : const Color(0xFF90CAF9),
+                              ),
                             ),
-                          ),
-                          child: Text(
-                            _isEmployee ? 'موظف / كادر رسمي' : 'عميل / مزارع',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: _isEmployee ? const Color(0xFF1B5E20) : const Color(0xFF0D47A1),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  _isEmployee ? 'موظف / كادر رسمي' : 'عميل / مزارع',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: _isEmployee ? const Color(0xFF1B5E20) : const Color(0xFF0D47A1),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(Icons.sync_alt_rounded, size: 14, color: _isEmployee ? const Color(0xFF1B5E20) : const Color(0xFF0D47A1)),
+                              ],
                             ),
                           ),
                         ),
