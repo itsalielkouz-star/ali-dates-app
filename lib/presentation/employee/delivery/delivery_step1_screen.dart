@@ -27,9 +27,9 @@ class _DeliveryStep1ScreenState extends State<DeliveryStep1Screen> {
   FarmModel? _selectedFarm;
   String _cargoType = 'dates'; // 'dates' vs 'boxes'
 
-  final _driverNameController = TextEditingController(text: 'محمود العمري');
-  final _agentNameController = TextEditingController(text: 'م. يوسف');
-  final _plateNumberController = TextEditingController(text: '44-10293');
+  final _driverNameController = TextEditingController();
+  final _agentNameController = TextEditingController();
+  final _plateNumberController = TextEditingController();
 
   Uint8List? _truckPhotoBytes;
   Uint8List? _licensePhotoBytes;

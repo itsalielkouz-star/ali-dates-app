@@ -30,10 +30,10 @@ class ReceivingTruckScreen extends StatefulWidget {
 
 class _ReceivingTruckScreenState extends State<ReceivingTruckScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _driverNameController = TextEditingController(text: 'أحمد المجالي');
-  final _agentNameController = TextEditingController(text: 'م. سليمان الخالد');
-  final _plateNumberController = TextEditingController(text: '12-94821');
-  bool _isPresorted = false;
+  final _driverNameController = TextEditingController();
+  final _agentNameController = TextEditingController();
+  final _plateNumberController = TextEditingController();
+  final bool _isPresorted = false;
   String _boxContractType = ShipmentModel.contractSorting; // تحديد ملكية الصناديق: 1. من عقد فرز, 2. من عقد تسويق, 3. من عقد شراء
 
   Uint8List? _truckPhotoBytes;

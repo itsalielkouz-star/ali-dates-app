@@ -408,13 +408,13 @@ class _HarvestingHomeScreenState extends State<HarvestingHomeScreen>
   void _openCreatePickingPlanModal(BuildContext context) {
     UserProfile? selectedCustomer;
     FarmModel? selectedFarm;
-    final landCtrl = TextEditingController(text: 'القطعة الجنوبية');
-    final landCodeCtrl = TextEditingController(text: 'L-01');
-    final plannedWorkersCtrl = TextEditingController(text: '20');
-    final plannedCratesCtrl = TextEditingController(text: '150');
-    final plannedKgCtrl = TextEditingController(text: '1000');
-    final laborLeaderCtrl = TextEditingController(text: 'محمد علي (عامل يومية ورئيس العمال)');
-    final laborLeaderPhoneCtrl = TextEditingController(text: '0791234567');
+    final landCtrl = TextEditingController();
+    final landCodeCtrl = TextEditingController();
+    final plannedWorkersCtrl = TextEditingController();
+    final plannedCratesCtrl = TextEditingController();
+    final plannedKgCtrl = TextEditingController();
+    final laborLeaderCtrl = TextEditingController();
+    final laborLeaderPhoneCtrl = TextEditingController();
     final notesCtrl = TextEditingController();
 
     final service = SupabaseService();
@@ -1057,8 +1057,8 @@ class _HarvestingHomeScreenState extends State<HarvestingHomeScreen>
   }
 
   void _openAddLoadDialog(PickingOperationModel op, StateSetter setSheetState) {
-    final crateCtrl = TextEditingController(text: '70');
-    final vehicleCtrl = TextEditingController(text: 'ديانا تويوتا');
+    final crateCtrl = TextEditingController();
+    final vehicleCtrl = TextEditingController();
     final driverCtrl = TextEditingController();
 
     showDialog(
