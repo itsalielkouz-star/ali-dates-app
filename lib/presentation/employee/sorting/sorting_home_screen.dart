@@ -723,33 +723,44 @@ class _SortingHomeScreenState extends State<SortingHomeScreen> with SingleTicker
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Row(
-                                  children: [
-                                    Icon(
-                                      isConsumed ? Icons.check_circle_outline_rounded : Icons.inventory_2_outlined,
-                                      size: 18,
-                                      color: isConsumed ? AppColors.textMuted : AppColors.navy,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      code,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 13,
-                                        fontFamily: 'monospace',
-                                        decoration: isConsumed ? TextDecoration.lineThrough : null,
+                                Expanded(
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        isConsumed ? Icons.check_circle_outline_rounded : Icons.inventory_2_outlined,
+                                        size: 18,
                                         color: isConsumed ? AppColors.textMuted : AppColors.navy,
                                       ),
-                                    ),
-                                    if (matchedPallet != null) ...[
                                       const SizedBox(width: 8),
-                                      Text(
-                                        '(${matchedPallet.netWeight.toStringAsFixed(1)} كغ | ${matchedPallet.boxCount} صندوق)',
-                                        style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                                      Flexible(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              code,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w900,
+                                                fontSize: 13,
+                                                fontFamily: 'monospace',
+                                                decoration: isConsumed ? TextDecoration.lineThrough : null,
+                                                color: isConsumed ? AppColors.textMuted : AppColors.navy,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            if (matchedPallet != null)
+                                              Text(
+                                                '${matchedPallet.netWeight.toStringAsFixed(1)} كغ | ${matchedPallet.boxCount} صندوق',
+                                                style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                          ],
+                                        ),
                                       ),
                                     ],
-                                  ],
+                                  ),
                                 ),
+                                const SizedBox(width: 8),
 
                                 // "طبلية فرغت" Empty Pallet Button with Confirmation Modal
                                 ElevatedButton.icon(
@@ -878,34 +889,41 @@ class _SortingHomeScreenState extends State<SortingHomeScreen> with SingleTicker
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Icon(Icons.balance_rounded, size: 18, color: isOverflow ? Colors.red.shade900 : AppColors.navy),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      isOverflow
-                                          ? '⚠️ فائض عن الرصيد المدخل: ${( -remaining ).toStringAsFixed(1)} كغ-'
-                                          : 'رصيد البضاعة قيد التعبئة (On Hold): ${remaining.toStringAsFixed(1)} كغ',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                        color: isOverflow ? Colors.red.shade900 : AppColors.navy,
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(Icons.balance_rounded, size: 18, color: isOverflow ? Colors.red.shade900 : AppColors.navy),
+                                      const SizedBox(width: 6),
+                                      Flexible(
+                                        child: Text(
+                                          isOverflow
+                                              ? '⚠️ فائض عن الرصيد المدخل: ${( -remaining ).toStringAsFixed(1)} كغ-'
+                                              : 'رصيد البضاعة قيد التعبئة (On Hold): ${remaining.toStringAsFixed(1)} كغ',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                            color: isOverflow ? Colors.red.shade900 : AppColors.navy,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'تم فرز وتعبئة: ${totalOut.toStringAsFixed(1)} كغ  |  إجمالي رصيد المصدر: ${batch.inputWeight.toStringAsFixed(1)} كغ',
-                                  style: TextStyle(fontSize: 11, color: isOverflow ? Colors.red.shade700 : AppColors.textSecondary),
-                                ),
-                              ],
+                                    ],
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    'تم فرز وتعبئة: ${totalOut.toStringAsFixed(1)} كغ  |  إجمالي رصيد المصدر: ${batch.inputWeight.toStringAsFixed(1)} كغ',
+                                    style: TextStyle(fontSize: 11, color: isOverflow ? Colors.red.shade700 : AppColors.textSecondary),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
                             ),
+                            const SizedBox(width: 10),
 
                             // (+) Add Output Pallet Button
                             ElevatedButton.icon(
