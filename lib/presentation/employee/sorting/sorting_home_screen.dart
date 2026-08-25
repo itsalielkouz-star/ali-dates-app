@@ -46,8 +46,7 @@ class _SortingHomeScreenState extends State<SortingHomeScreen> with SingleTicker
       if (mounted) setState(() {});
     });
 
-    // Automatically load active in-progress sorting batches from last time so work is saved
-    _loadSavedActiveBatches();
+    // Batches should only be loaded when user opens the planner and selects pallets
   }
 
   void _loadSavedActiveBatches() {

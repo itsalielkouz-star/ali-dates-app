@@ -75,18 +75,6 @@ class _LocationSelectorScreenState extends State<LocationSelectorScreen> {
   }
 
   Future<void> _handleConfirmMove() async {
-    // 1. Enforce QR Scan Validation before moving
-    if (!_isPalletScanVerified) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('⚠️ يجب مسح رمز QR الخاص بالطبلية أولاً للتحقق من مطابقتها قبل إتمام النقل'),
-          backgroundColor: AppColors.warning,
-          duration: Duration(seconds: 4),
-        ),
-      );
-      _scanToVerifyPallet();
-      return;
-    }
     // If moving to sorting lines (فرز أولي / فرز آلي)
     if (_selectedLocationType == AppConstants.locPreSort ||
         _selectedLocationType == AppConstants.locAutoSort) {
@@ -362,90 +350,21 @@ class _LocationSelectorScreenState extends State<LocationSelectorScreen> {
 
             const SizedBox(height: 16),
 
-            // Mandatory QR Scan Verification Card before moving
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: _isPalletScanVerified ? const Color(0xFFF0FDF4) : const Color(0xFFFFFBEB),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: _isPalletScanVerified ? const Color(0xFF22C55E) : const Color(0xFFF59E0B),
-                  width: 1.5,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    _isPalletScanVerified ? Icons.verified_rounded : Icons.qr_code_scanner_rounded,
-                    color: _isPalletScanVerified ? const Color(0xFF16A34A) : const Color(0xFFD97706),
-                    size: 28,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _isPalletScanVerified
-                              ? 'تم التحقق من مطابقة الطبلية بنجاح ✓'
-                              : 'مطلوب مسح رمز QR للتحقق من الطبلية',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13.5,
-                            color: _isPalletScanVerified ? const Color(0xFF15803D) : const Color(0xFFB45309),
-                          ),
-                        ),
-                        Text(
-                          _isPalletScanVerified
-                              ? 'تم التحقق من كود (${widget.pallet.palletCode}) وجاهزة للنقل'
-                              : 'امسح ملصق الطبلية للتأكد أنها الطبلية الصحيحة المراد نقلها',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: _isPalletScanVerified ? const Color(0xFF166534) : const Color(0xFF92400E),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _isPalletScanVerified ? const Color(0xFF16A34A) : AppColors.navy,
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    icon: Icon(
-                      _isPalletScanVerified ? Icons.check_circle_rounded : Icons.camera_alt_rounded,
-                      size: 16,
-                      color: Colors.white,
-                    ),
-                    label: Text(
-                      _isPalletScanVerified ? 'تم التحقق' : 'مسح الكود 📷',
-                      style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Colors.white),
-                    ),
-                    onPressed: _scanToVerifyPallet,
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
             // Confirm Move Button
             ElevatedButton.icon(
-              icon: Icon(
-                _isPalletScanVerified ? Icons.check_circle_rounded : Icons.lock_outline_rounded,
-                color: _isPalletScanVerified ? AppColors.dateGold : Colors.white70,
+              icon: const Icon(
+                Icons.check_circle_rounded,
+                color: AppColors.dateGold,
               ),
               label: Text(
                 (_selectedLocationType == AppConstants.locPreSort ||
                         _selectedLocationType == AppConstants.locAutoSort)
                     ? 'جدولة وحجز موعد الفرز'
                     : 'تأكيد نقل الطبلية إلى الموقع المحدد',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: _isPalletScanVerified ? AppColors.navy : Colors.grey.shade600,
+                backgroundColor: AppColors.navy,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
