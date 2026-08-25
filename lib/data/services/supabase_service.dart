@@ -158,22 +158,25 @@ class SupabaseService extends ChangeNotifier {
 
   /// Initialize Supabase client and load state
   Future<void> initialize() async {
-    try {
-      await Supabase.initialize(
-        url: ApiConfig.supabaseUrl,
-        anonKey: ApiConfig.supabasePublishableKey,
-      );
-      _supabase = Supabase.instance.client;
-    } catch (e) {
-      debugPrint('Supabase init warning: $e');
-    }
-
-    // Load cached session & data immediately
+    // Load cached session & data immediately for instant app rendering
     _currentUser = StorageService.getCurrentUser();
     _loadSeedOrCacheData();
 
-    // Background async sync with Odoo and Supabase without blocking UI
-    syncAllData();
+    // Initialize Supabase in the background without blocking initial app start
+    unawaited(() async {
+      try {
+        await Supabase.initialize(
+          url: ApiConfig.supabaseUrl,
+          anonKey: ApiConfig.supabasePublishableKey,
+        );
+        _supabase = Supabase.instance.client;
+      } catch (e) {
+        debugPrint('Supabase init warning: $e');
+      }
+
+      // Background async sync with Odoo and Supabase
+      syncAllData();
+    }());
 
     // Start auto-sync interval with Odoo every 2 minutes
     _odooSyncTimer?.cancel();

@@ -168,6 +168,23 @@
     </div>
     <div class="loading-hint">جاري تحميل النظام السحابي وإعداد البيانات...</div>
   </div>
-  <script src="flutter_bootstrap.js" async></script>
+  <script>
+    {{flutter_js}}
+    {{flutter_build_config}}
+
+    const loadingElem = document.getElementById('loading-container');
+
+    _flutter.loader.load({
+      onEntrypointLoaded: async function(engineInitializer) {
+        const appRunner = await engineInitializer.initializeEngine();
+        if (loadingElem) {
+          loadingElem.style.transition = 'opacity 0.3s ease-out';
+          loadingElem.style.opacity = '0';
+          setTimeout(() => loadingElem.remove(), 300);
+        }
+        await appRunner.runApp();
+      }
+    });
+  </script>
 </body>
 </html>
