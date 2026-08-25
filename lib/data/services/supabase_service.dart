@@ -248,6 +248,260 @@ class SupabaseService extends ChangeNotifier {
 
     final cachedPicking = StorageService.getCachedPickingOperations();
     _pickingOperations = cachedPicking.map((e) => PickingOperationModel.fromJson(e)).toList();
+
+    // Ensure dedicated test customer exists with rich operational and sorting breakdown data
+    _ensureTestCustomerWithFullData();
+  }
+
+  /// Sets up a dedicated test customer with full datasets (farms, pallets in freezers, sorting breakdowns, documents, harvesting)
+  void _ensureTestCustomerWithFullData() {
+    const testCustomerId = 'cust_test_alialkouz_demo';
+    const testPhone = '0799001122';
+    const testName = 'مزرعة الشيخ ناصر الراجحي (حساب تجريبي)';
+
+    // 1. Profile
+    final existingIndex = _profiles.indexWhere((p) => PhoneUtils.areEqual(p.phone, testPhone) || p.id == testCustomerId);
+    final testProfile = UserProfile(
+      id: testCustomerId,
+      phone: testPhone,
+      name: testName,
+      isEmployee: false,
+      companyName: 'مزارع النخيل الذهبية - الأغوار',
+      passwordHash: '1234',
+      needsPasswordChange: false,
+    );
+
+    if (existingIndex != -1) {
+      _profiles[existingIndex] = testProfile;
+    } else {
+      _profiles.insert(0, testProfile);
+    }
+
+    // 2. Farms
+    if (!_farms.any((f) => f.customerId == testCustomerId)) {
+      _farms.addAll([
+        FarmModel(
+          id: 'farm_shouna_01',
+          customerId: testCustomerId,
+          name: 'مزرعة الشونة الشمالية - القطعة أ',
+          governorate: 'الشونة الشمالية',
+          code: 'SH-01',
+        ),
+        FarmModel(
+          id: 'farm_ghor_safy_02',
+          customerId: testCustomerId,
+          name: 'مزرعة غور الصافي النموذجية',
+          governorate: 'غور الصافي',
+          code: 'GS-02',
+        ),
+      ]);
+    }
+
+    // 3. Pallets (Stored in Freezers, In Warehouse, and Delivered)
+    if (!_pallets.any((p) => p.customerId == testCustomerId)) {
+      final now = DateTime.now();
+      _pallets.addAll([
+        PalletModel(
+          id: 'pal_demo_01',
+          palletCode: 'PAL-2026-N01',
+          customerId: testCustomerId,
+          customerName: testName,
+          farmId: 'farm_shouna_01',
+          farmName: 'مزرعة الشونة الشمالية - القطعة أ',
+          grossWeight: 1045.0,
+          netWeight: 840.0,
+          boxCount: 200,
+          emptyPalletWeight: 16.0,
+          emptyBoxWeight: 0.94,
+          locationType: AppConstants.locMainFreezer1,
+          freezerRow: 'A',
+          freezerCol: 3,
+          freezerLayer: 1,
+          locationCode: 'A31',
+          status: 'stored',
+          category: 'مجهول ممتاز',
+          size: 'جمبو',
+          createdAt: now.subtract(const Duration(days: 4)),
+        ),
+        PalletModel(
+          id: 'pal_demo_02',
+          palletCode: 'PAL-2026-N02',
+          customerId: testCustomerId,
+          customerName: testName,
+          farmId: 'farm_shouna_01',
+          farmName: 'مزرعة الشونة الشمالية - القطعة أ',
+          grossWeight: 1060.0,
+          netWeight: 855.0,
+          boxCount: 200,
+          emptyPalletWeight: 16.0,
+          emptyBoxWeight: 0.94,
+          locationType: AppConstants.locMainFreezer1,
+          freezerRow: 'A',
+          freezerCol: 3,
+          freezerLayer: 2,
+          locationCode: 'A32',
+          pairedPalletId: 'pal_demo_01',
+          pairedPalletCode: 'PAL-2026-N01',
+          isStackedTop: true,
+          status: 'stored',
+          category: 'مجهول ممتاز',
+          size: 'سوبر جمبو',
+          createdAt: now.subtract(const Duration(days: 4)),
+        ),
+        PalletModel(
+          id: 'pal_demo_03',
+          palletCode: 'PAL-2026-N03',
+          customerId: testCustomerId,
+          customerName: testName,
+          farmId: 'farm_ghor_safy_02',
+          farmName: 'مزرعة غور الصافي النموذجية',
+          grossWeight: 980.0,
+          netWeight: 775.0,
+          boxCount: 200,
+          emptyPalletWeight: 16.0,
+          emptyBoxWeight: 0.94,
+          locationType: AppConstants.locFirstFridge,
+          freezerRow: 'B',
+          freezerCol: 2,
+          freezerLayer: 1,
+          locationCode: 'B21',
+          status: 'stored',
+          category: 'مجهول',
+          size: 'لارج',
+          createdAt: now.subtract(const Duration(days: 2)),
+        ),
+      ]);
+    }
+
+    // 4. Sorting Batches with Full Quality & Size Breakdowns
+    if (!_sortingBatches.any((b) => b.customerId == testCustomerId)) {
+      final now = DateTime.now();
+      _sortingBatches.addAll([
+        // Batch 1: Completed Auto-Sort with detailed breakdown
+        SortingBatchModel(
+          id: 'batch_demo_comp_01',
+          batchNumber: 108,
+          sourcePalletId: 'pal_demo_src_01',
+          sourcePalletCode: 'PAL-2026-SRC1',
+          sourcePalletIds: ['pal_demo_src_01'],
+          sourcePalletCodes: ['PAL-2026-SRC1'],
+          sourcePalletLocation: 'فريزر 1 - موقع A11',
+          customerId: testCustomerId,
+          customerName: testName,
+          farmId: 'farm_shouna_01',
+          farmName: 'مزرعة الشونة الشمالية - القطعة أ',
+          sortingType: 'autosort',
+          scheduledDate: now.subtract(const Duration(days: 1)),
+          inputWeight: 1000.0,
+          outputWeight: 940.0,
+          wasteWeight: 60.0,
+          status: 'completed',
+          createdAt: now.subtract(const Duration(days: 2)),
+          completedAt: now.subtract(const Duration(days: 1)),
+          outputPallets: [
+            SortingOutputItem(
+              id: 'out_01',
+              batchId: 'batch_demo_comp_01',
+              palletCode: 'PAL-SORT-A101',
+              category: 'بريميوم',
+              size: 'سوبر جمبو',
+              boxCount: 80,
+              weight: 400.0,
+              isCardboard: true,
+              boxTareWeight: 0.5,
+              palletTareWeight: 16.0,
+              grossWeight: 456.0,
+              isFull: true,
+            ),
+            SortingOutputItem(
+              id: 'out_02',
+              batchId: 'batch_demo_comp_01',
+              palletCode: 'PAL-SORT-A102',
+              category: 'ديلايت',
+              size: 'جمبو',
+              boxCount: 60,
+              weight: 300.0,
+              isCardboard: true,
+              boxTareWeight: 0.5,
+              palletTareWeight: 16.0,
+              grossWeight: 346.0,
+              isFull: true,
+            ),
+            SortingOutputItem(
+              id: 'out_03',
+              batchId: 'batch_demo_comp_01',
+              palletCode: 'PAL-SORT-A103',
+              category: 'كلاسيك',
+              size: 'ميديوم',
+              boxCount: 48,
+              weight: 240.0,
+              isCardboard: true,
+              boxTareWeight: 0.5,
+              palletTareWeight: 16.0,
+              grossWeight: 280.0,
+              isFull: true,
+            ),
+          ],
+        ),
+
+        // Batch 2: Scheduled in-progress Pre-Sort Batch
+        SortingBatchModel(
+          id: 'batch_demo_prog_02',
+          batchNumber: 109,
+          sourcePalletId: 'pal_demo_src_02',
+          sourcePalletCode: 'PAL-2026-SRC2',
+          sourcePalletIds: ['pal_demo_src_02'],
+          sourcePalletCodes: ['PAL-2026-SRC2'],
+          sourcePalletLocation: 'ثلاجة التعقيم - موقع C11',
+          customerId: testCustomerId,
+          customerName: testName,
+          farmId: 'farm_ghor_safy_02',
+          farmName: 'مزرعة غور الصافي النموذجية',
+          sortingType: 'presort',
+          scheduledDate: now.add(const Duration(days: 1)),
+          inputWeight: 850.0,
+          outputWeight: 0.0,
+          wasteWeight: 0.0,
+          status: 'in_progress',
+          createdAt: now,
+          outputPallets: [],
+        ),
+      ]);
+    }
+
+    // 5. Official Documents (عقد فرز، إشعار استلام، وفاتورة)
+    if (!_documents.any((d) => d.customerId == testCustomerId)) {
+      final now = DateTime.now();
+      _documents.addAll([
+        DocumentModel(
+          id: 'doc_contract_01',
+          customerId: testCustomerId,
+          title: 'عقد فرز وتعبئة محصول موسم 2026',
+          category: 'contract',
+          date: now.subtract(const Duration(days: 10)),
+          notes: 'عقد رسمي موقع لفرز وتخزين 50 طن تمور مجهول بمستودعات تمور علي',
+          fileBytes: 'contract_verified_signature',
+        ),
+        DocumentModel(
+          id: 'doc_receipt_02',
+          customerId: testCustomerId,
+          title: 'سند استلام واستيداع 3 طبالي مجهول',
+          category: 'receipt',
+          date: now.subtract(const Duration(days: 4)),
+          notes: 'استلام تمور بحالة ممتازة وإدخالها إلى فريزر 1 وثلاجة الاستقبال',
+          fileBytes: 'receipt_verified_signature',
+        ),
+        DocumentModel(
+          id: 'doc_invoice_03',
+          customerId: testCustomerId,
+          title: 'تقرير وفاتورة تصفية الفرز الآلي (دفعة #108)',
+          category: 'invoice',
+          date: now.subtract(const Duration(days: 1)),
+          notes: 'تقرير تصفية الفرز الآلي بنسبة مطابقة 94% وفرز أصناف بريميوم وديلايت',
+          fileBytes: 'invoice_verified_signature',
+        ),
+      ]);
+    }
   }
 
   /// Update / Start Shift with Supervisor
