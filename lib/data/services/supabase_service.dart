@@ -668,23 +668,14 @@ class SupabaseService extends ChangeNotifier {
     bool isFirstTime = false;
     String sourceDesc = 'قاعدة البيانات المعتمدة';
 
-    // 1. Live lookup from Odoo ERP (Employee App `hr.employee` vs Contact App `res.partner`)
-    try {
-      final odooContact = await OdooService.lookupContactByPhone(rawPhone);
-      if (odooContact != null) {
-        user = odooContact;
-        sourceDesc = odooContact.isEmployee
-            ? 'سجلات نظام Odoo للموظفين (Employee App)'
-            : 'سجلات نظام Odoo للعملاء والجهات (Contacts App)';
+    // 1. Check local profiles in memory / cache first
+    final localIndex = _profiles.indexWhere(
+      (p) => searchVariants.any((v) => PhoneUtils.areEqual(p.phone, v)),
+    );
 
-        if (_supabase != null) {
-          try {
-            await _supabase!.from('profiles').upsert(user.toJson());
-          } catch (_) {}
-        }
-      }
-    } catch (e) {
-      debugPrint('Odoo live lookup note: $e');
+    if (localIndex != -1) {
+      user = _profiles[localIndex];
+      sourceDesc = 'الملف المسجل في النظام';
     }
 
     // 2. Query Supabase profiles table across all phone variants
@@ -700,6 +691,13 @@ class SupabaseService extends ChangeNotifier {
           if (res != null) {
             user = UserProfile.fromJson(res);
             sourceDesc = 'الملف المسجل في قاعدة البيانات';
+            // Sync locally
+            final idx = _profiles.indexWhere((p) => p.id == user!.id);
+            if (idx != -1) {
+              _profiles[idx] = user;
+            } else {
+              _profiles.add(user);
+            }
             break;
           }
         }
@@ -708,48 +706,62 @@ class SupabaseService extends ChangeNotifier {
       }
     }
 
-    // 3. Fallback to local memory / cache or create new user
+    // 3. Live lookup from Odoo ERP if not yet found
     if (user == null) {
-      final localIndex = _profiles.indexWhere(
-        (p) => searchVariants.any((v) => PhoneUtils.areEqual(p.phone, v)),
-      );
+      try {
+        final odooContact = await OdooService.lookupContactByPhone(rawPhone);
+        if (odooContact != null) {
+          user = odooContact;
+          sourceDesc = odooContact.isEmployee
+              ? 'سجلات نظام Odoo للموظفين (Employee App)'
+              : 'سجلات نظام Odoo للعملاء والجهات (Contacts App)';
 
-      if (localIndex != -1) {
-        user = _profiles[localIndex];
-      } else {
-        // Completely new first-time login
-        isFirstTime = true;
-        final isKhaled = cleanPhone.contains('0798997449') || rawPhone.contains('798997449') || cleanPhone.contains('798997449');
-        final isHusam = cleanPhone.contains('72033020') || rawPhone.contains('72033020') || cleanPhone.contains('33454144') || rawPhone.contains('33454144');
-        final isAli = cleanPhone.contains('0795457988') || rawPhone.contains('795457988');
-        final isOthman = cleanPhone.contains('0796611533') || rawPhone.contains('796611533');
-        final isEmp = isKhaled || isHusam || isAli || isOthman;
+          _profiles.add(user);
+          await StorageService.cacheProfiles(_profiles);
 
-        String assignedName = 'عميل تمور علي (${PhoneUtils.toDisplay(cleanPhone)})';
-        if (isKhaled) assignedName = 'خالد الكوز';
-        if (isHusam) assignedName = 'حسام الكوز';
-        if (isAli) assignedName = 'علي الشريف';
-        if (isOthman) assignedName = 'عثمان ابراهيم عداربة';
-
-        user = UserProfile(
-          id: const Uuid().v4(),
-          phone: cleanPhone,
-          name: assignedName,
-          isEmployee: isEmp,
-          companyName: isEmp ? 'تمور علي' : 'مزرعة جديدة',
-          passwordHash: password.isNotEmpty ? password : '1234',
-          needsPasswordChange: password == '1234' || password.isEmpty,
-        );
-        _profiles.add(user);
-        sourceDesc = (isKhaled || isHusam || isAli || isOthman)
-            ? 'حساب الإدارة المعتمد ($assignedName)'
-            : (isEmp ? 'حساب كادر تمور علي' : 'تسجيل مستخدم جديد لأول مرة');
-
-        if (_supabase != null) {
-          try {
-            await _supabase!.from('profiles').upsert(user.toJson());
-          } catch (_) {}
+          if (_supabase != null) {
+            try {
+              await _supabase!.from('profiles').upsert(user.toJson());
+            } catch (_) {}
+          }
         }
+      } catch (e) {
+        debugPrint('Odoo live lookup note: $e');
+      }
+    }
+    // 4. Fallback for completely new first-time login
+    if (user == null) {
+      isFirstTime = true;
+      final isKhaled = cleanPhone.contains('0798997449') || rawPhone.contains('798997449') || cleanPhone.contains('798997449');
+      final isHusam = cleanPhone.contains('72033020') || rawPhone.contains('72033020') || cleanPhone.contains('33454144') || rawPhone.contains('33454144');
+      final isAli = cleanPhone.contains('0795457988') || rawPhone.contains('795457988');
+      final isOthman = cleanPhone.contains('0796611533') || rawPhone.contains('796611533');
+      final isEmp = isKhaled || isHusam || isAli || isOthman;
+
+      String assignedName = 'عميل تمور علي (${PhoneUtils.toDisplay(cleanPhone)})';
+      if (isKhaled) assignedName = 'خالد الكوز';
+      if (isHusam) assignedName = 'حسام الكوز';
+      if (isAli) assignedName = 'علي الشريف';
+      if (isOthman) assignedName = 'عثمان ابراهيم عداربة';
+
+      user = UserProfile(
+        id: const Uuid().v4(),
+        phone: cleanPhone,
+        name: assignedName,
+        isEmployee: isEmp,
+        companyName: isEmp ? 'تمور علي' : 'مزرعة جديدة',
+        passwordHash: password.isNotEmpty ? password : '1234',
+        needsPasswordChange: password == '1234' || password.isEmpty,
+      );
+      _profiles.add(user);
+      sourceDesc = (isKhaled || isHusam || isAli || isOthman)
+          ? 'حساب الإدارة المعتمد ($assignedName)'
+          : (isEmp ? 'حساب كادر تمور علي' : 'تسجيل مستخدم جديد لأول مرة');
+
+      if (_supabase != null) {
+        try {
+          await _supabase!.from('profiles').upsert(user.toJson());
+        } catch (_) {}
       }
     }
 

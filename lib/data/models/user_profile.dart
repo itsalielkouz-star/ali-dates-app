@@ -39,9 +39,8 @@ class UserProfile {
       id: json['id']?.toString() ?? '',
       phone: json['phone']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
-      isEmployee: json['is_employee'] == true ||
-          (json['company_name']?.toString().contains('تمور علي') ?? false),
-      companyName: json['company_name']?.toString() ?? 'تمور علي',
+      isEmployee: json['is_employee'] == true,
+      companyName: json['company_name']?.toString() ?? '',
       passwordHash: json['password_hash']?.toString() ?? '1234',
       needsPasswordChange: json['needs_password_change'] ??
           (json['password_hash'] == '1234'),
