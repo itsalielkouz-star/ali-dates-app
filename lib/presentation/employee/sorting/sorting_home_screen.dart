@@ -193,14 +193,82 @@ class _SortingHomeScreenState extends State<SortingHomeScreen> with SingleTicker
       sortingType: _currentSortingType,
       currentCustomerIdsOnScreen: currentCustomerIds,
       onBatchesAdded: (newBatches) {
+        if (newBatches.isEmpty) return;
+
         setState(() {
-          for (var b in newBatches) {
-            if (!_currentActiveBatches.any((existing) => existing.id == b.id)) {
-              _currentActiveBatches.add(b);
+          if (_currentActiveBatches.isEmpty) {
+            // Combine all new batches into a single unified batch widget
+            final first = newBatches.first;
+            final allPalletIds = <String>{};
+            final allPalletCodes = <String>{};
+            double totalInput = 0.0;
+            final allOutputs = <SortingOutputItem>[];
+
+            for (var b in newBatches) {
+              allPalletIds.addAll(b.sourcePalletIds);
+              allPalletCodes.addAll(b.sourcePalletCodes);
+              totalInput += b.inputWeight;
+              allOutputs.addAll(b.outputPallets);
             }
-          }
-          if (_currentActiveBatches.isNotEmpty && _expandedBatchId == null) {
-            _expandedBatchId = _currentActiveBatches.first.id;
+
+            final unifiedBatch = SortingBatchModel(
+              id: first.id,
+              batchNumber: first.batchNumber,
+              sourcePalletId: allPalletIds.first,
+              sourcePalletCode: allPalletCodes.first,
+              sourcePalletIds: allPalletIds.toList(),
+              sourcePalletCodes: allPalletCodes.toList(),
+              sourcePalletLocation: first.sourcePalletLocation,
+              customerId: first.customerId,
+              customerName: first.customerName,
+              farmId: first.farmId,
+              farmName: first.farmName,
+              sortingType: _currentSortingType,
+              scheduledDate: first.scheduledDate,
+              inputWeight: totalInput,
+              outputPallets: allOutputs,
+              status: 'in_progress',
+              createdAt: first.createdAt,
+            );
+
+            _currentActiveBatches.add(unifiedBatch);
+            _expandedBatchId = unifiedBatch.id;
+          } else {
+            // Merge additional selected pallets into the existing active unified widget
+            final existing = _currentActiveBatches.first;
+            final allPalletIds = Set<String>.from(existing.sourcePalletIds);
+            final allPalletCodes = Set<String>.from(existing.sourcePalletCodes);
+            double totalInput = existing.inputWeight;
+            final allOutputs = List<SortingOutputItem>.from(existing.outputPallets);
+
+            for (var b in newBatches) {
+              for (var pid in b.sourcePalletIds) {
+                if (!allPalletIds.contains(pid)) {
+                  allPalletIds.add(pid);
+                  final p = SupabaseService().findPalletById(pid);
+                  if (p != null) totalInput += p.netWeight;
+                }
+              }
+              for (var code in b.sourcePalletCodes) {
+                allPalletCodes.add(code);
+              }
+              for (var out in b.outputPallets) {
+                if (!allOutputs.any((o) => o.id == out.id)) {
+                  allOutputs.add(out);
+                }
+              }
+            }
+
+            final mergedBatch = existing.copyWith(
+              sourcePalletIds: allPalletIds.toList(),
+              sourcePalletCodes: allPalletCodes.toList(),
+              inputWeight: totalInput,
+              outputPallets: allOutputs,
+            );
+
+            _currentActiveBatches[0] = mergedBatch;
+            _expandedBatchId = mergedBatch.id;
+            _autosaveBatch(mergedBatch);
           }
         });
       },
@@ -683,36 +751,106 @@ class _SortingHomeScreenState extends State<SortingHomeScreen> with SingleTicker
                                   ],
                                 ),
 
-                                // "طبلية فرغت" Empty Pallet Button
+                                // "طبلية فرغت" Empty Pallet Button with Confirmation Modal
                                 ElevatedButton.icon(
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: isConsumed ? Colors.grey.shade400 : const Color(0xFFE65100),
                                     foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                     minimumSize: Size.zero,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                   ),
                                   icon: Icon(
-                                    isConsumed ? Icons.done_all_rounded : Icons.remove_circle_outline_rounded,
-                                    size: 14,
+                                    isConsumed ? Icons.history_rounded : Icons.delete_sweep_rounded,
+                                    size: 15,
                                   ),
                                   label: Text(
-                                    isConsumed ? 'تم التفريغ ✓' : 'طبلية فرغت 🗑️',
+                                    isConsumed ? 'تم التفريغ (بالأرشيف) ✓' : 'طبلية فرغت 🗑️',
                                     style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
                                   ),
                                   onPressed: () async {
                                     if (matchedPallet != null) {
+                                      if (!isConsumed) {
+                                        // Seek confirmation modal
+                                        final bool? confirmed = await showDialog<bool>(
+                                          context: context,
+                                          builder: (ctx) => AlertDialog(
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                            title: const Row(
+                                              children: [
+                                                Icon(Icons.warning_amber_rounded, color: Color(0xFFE65100), size: 26),
+                                                SizedBox(width: 8),
+                                                Text('تأكيد تفريغ واستهلاك الطبلية', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.navy)),
+                                              ],
+                                            ),
+                                            content: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  'سيتم الآن تفريغ الطبلية المرجعية ($code) ونقلها إلى سجل الأرشيف.',
+                                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.navy),
+                                                ),
+                                                const SizedBox(height: 10),
+                                                Container(
+                                                  padding: const EdgeInsets.all(10),
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(0xFFFFF7ED),
+                                                    borderRadius: BorderRadius.circular(8),
+                                                    border: Border.all(color: const Color(0xFFFDBA74)),
+                                                  ),
+                                                  child: Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      Text(
+                                                        '• الوزن الصافي للبضاعة: ${matchedPallet.netWeight.toStringAsFixed(1)} كغ (${matchedPallet.boxCount} صندوق)',
+                                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF9A3412)),
+                                                      ),
+                                                      const SizedBox(height: 4),
+                                                      const Text(
+                                                        '• ستبقى بضاعة الطبلية محجوزة قيد المعالجة (On Hold) داخل خط الفرز حتى تقوم بتعبئة طبالي المخرجات المستهدفة بالكامل.',
+                                                        style: TextStyle(fontSize: 11.5, color: Color(0xFF9A3412)),
+                                                      ),
+                                                      const SizedBox(height: 4),
+                                                      const Text(
+                                                        '• لن يتم نقل هذه الطبلية إلى أي موقع تخزين جديد وسيتم اعتبارها مستهلكة ومنتهية من المخزون.',
+                                                        style: TextStyle(fontSize: 11.5, color: Color(0xFF9A3412)),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            actions: [
+                                              OutlinedButton(
+                                                onPressed: () => Navigator.of(ctx).pop(false),
+                                                child: const Text('إلغاء'),
+                                              ),
+                                              ElevatedButton(
+                                                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE65100)),
+                                                onPressed: () => Navigator.of(ctx).pop(true),
+                                                child: const Text('تأكيد التفريغ والاستهلاك', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+
+                                        if (confirmed != true) return;
+                                      }
+
                                       final newStatus = isConsumed ? 'in_warehouse' : 'consumed';
                                       await SupabaseService().updatePallet(matchedPallet.copyWith(status: newStatus));
                                       setState(() {});
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text(isConsumed
-                                              ? 'تم إعادة تعيين الطبلية ($code) كطبلية غير مفرغة'
-                                              : 'تم تأكيد تفريغ الطبلية ($code) وانتهت من المستودع بنجاح'),
-                                          backgroundColor: isConsumed ? AppColors.navy : AppColors.success,
-                                        ),
-                                      );
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text(isConsumed
+                                                ? 'تمت استعادة الطبلية ($code) إلى المخزون'
+                                                : 'تم تفريغ الطبلية ($code) ونقلها للأرشيف واحتساب وزنها قيد التعبئة'),
+                                            backgroundColor: isConsumed ? AppColors.navy : AppColors.success,
+                                          ),
+                                        );
+                                      }
                                     }
                                   },
                                 ),
@@ -726,7 +864,7 @@ class _SortingHomeScreenState extends State<SortingHomeScreen> with SingleTicker
 
                   const SizedBox(height: 14),
 
-                  // --- SECTION 2: BOTTOM HALF - OUTPUT PALLETS (مخرجات الفرز) ---
+                  // --- SECTION 2: BOTTOM HALF - OUTPUT PALLETS & BALANCE (مخرجات الفرز وتوازن البضاعة) ---
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -736,39 +874,51 @@ class _SortingHomeScreenState extends State<SortingHomeScreen> with SingleTicker
                         color: isOverflow ? Colors.red.shade400 : AppColors.navy.withAlpha(50),
                       ),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              isOverflow
-                                  ? '⚠️ فائض عن الوزن المدخل: ${( -remaining ).toStringAsFixed(1)} كغ-'
-                                  : 'المتبقي للفرز: ${remaining.toStringAsFixed(1)} كغ',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                                color: isOverflow ? Colors.red.shade900 : AppColors.navy,
-                              ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(Icons.balance_rounded, size: 18, color: isOverflow ? Colors.red.shade900 : AppColors.navy),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      isOverflow
+                                          ? '⚠️ فائض عن الرصيد المدخل: ${( -remaining ).toStringAsFixed(1)} كغ-'
+                                          : 'رصيد البضاعة قيد التعبئة (On Hold): ${remaining.toStringAsFixed(1)} كغ',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                        color: isOverflow ? Colors.red.shade900 : AppColors.navy,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'تم فرز وتعبئة: ${totalOut.toStringAsFixed(1)} كغ  |  إجمالي رصيد المصدر: ${batch.inputWeight.toStringAsFixed(1)} كغ',
+                                  style: TextStyle(fontSize: 11, color: isOverflow ? Colors.red.shade700 : AppColors.textSecondary),
+                                ),
+                              ],
                             ),
-                            Text(
-                              'إجمالي المفرز: ${totalOut.toStringAsFixed(1)} كغ من أصل ${batch.inputWeight.toStringAsFixed(1)} كغ',
-                              style: TextStyle(fontSize: 11, color: isOverflow ? Colors.red.shade700 : AppColors.textSecondary),
+
+                            // (+) Add Output Pallet Button
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: isAuto ? const Color(0xFF1565C0) : const Color(0xFFD84315),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              icon: const Icon(Icons.add_rounded, size: 18, color: Colors.white),
+                              label: const Text('إضافة طبلية مخرجات +', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+                              onPressed: () => _openAddOutputPalletDialog(batch, isAuto),
                             ),
                           ],
-                        ),
-
-                        // (+) Add Output Pallet Button
-                        ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: isAuto ? const Color(0xFF1565C0) : const Color(0xFFD84315),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                          icon: const Icon(Icons.add_rounded, size: 18, color: Colors.white),
-                          label: const Text('إضافة طبلية مخرجات +', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
-                          onPressed: () => _openAddOutputPalletDialog(batch, isAuto),
                         ),
                       ],
                     ),

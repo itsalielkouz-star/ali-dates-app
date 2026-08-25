@@ -47,6 +47,7 @@ class _ScheduledPalletPickerModalState extends State<ScheduledPalletPickerModal>
   DateTime _focusedMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
   DateTime _selectedDate = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
   final Set<String> _selectedBatchIds = {};
+  String? _selectedCustomerId; // Filter by customer name
 
   @override
   Widget build(BuildContext context) {
@@ -58,8 +59,24 @@ class _ScheduledPalletPickerModalState extends State<ScheduledPalletPickerModal>
 
     // Get all in_progress/planned batches for this sorting line
     final allLineBatches = service.sortingBatches.where((b) {
-      return b.sortingType == widget.sortingType && b.status == 'in_progress';
+      final matchesType = b.sortingType == widget.sortingType && b.status == 'in_progress';
+      if (!matchesType) return false;
+      if (_selectedCustomerId != null && _selectedCustomerId!.isNotEmpty) {
+        return b.customerId == _selectedCustomerId;
+      }
+      return true;
     }).toList();
+
+    // Distinct customer list for filter dropdown
+    final allCustomersInPlanner = service.sortingBatches
+        .where((b) => b.sortingType == widget.sortingType && b.status == 'in_progress')
+        .map((b) => {'id': b.customerId, 'name': b.customerName ?? 'عميل غير محدد'})
+        .fold<List<Map<String, String>>>([], (list, item) {
+          if (!list.any((existing) => existing['id'] == item['id'])) {
+            list.add(item);
+          }
+          return list;
+        });
 
     // Map of scheduled date -> count of pallets
     final Map<String, List<SortingBatchModel>> dateToBatches = {};
@@ -106,8 +123,8 @@ class _ScheduledPalletPickerModalState extends State<ScheduledPalletPickerModal>
                       ),
                       Text(
                         isAuto
-                            ? 'اختر اليوم واضغط على الطبالي لإضافتها لشاشة خط الفرز'
-                            : 'طاقة المشغل: 30 طن يومياً | اختر الطبالي للفرز',
+                            ? 'اختر العميل واليوم للنقل الفوري إلى شاشة الفرز'
+                            : 'اختر العميل واضغط اليوم لإدخال الطبالي فوراً',
                         style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
                       ),
                     ],
@@ -131,7 +148,59 @@ class _ScheduledPalletPickerModalState extends State<ScheduledPalletPickerModal>
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
+
+            // 1. FIRST FILTER: Customer Dropdown Filter
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: lineTheme.withAlpha(120), width: 1.2),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.person_search_rounded, color: lineTheme, size: 20),
+                  const SizedBox(width: 8),
+                  const Text('فلترة بالعميل:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.navy)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String?>(
+                        value: _selectedCustomerId,
+                        isExpanded: true,
+                        hint: const Text('جميع العملاء', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textMuted)),
+                        items: [
+                          const DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('جميع العملاء (الكل)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.navy)),
+                          ),
+                          ...allCustomersInPlanner.map((c) {
+                            return DropdownMenuItem<String?>(
+                              value: c['id'],
+                              child: Text(c['name']!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.navy)),
+                            );
+                          }),
+                        ],
+                        onChanged: (val) {
+                          setState(() {
+                            _selectedCustomerId = val;
+                            _selectedBatchIds.clear();
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                  if (_selectedCustomerId != null)
+                    IconButton(
+                      icon: const Icon(Icons.clear_rounded, size: 16, color: AppColors.textMuted),
+                      tooltip: 'إلغاء فلتر العميل',
+                      onPressed: () => setState(() => _selectedCustomerId = null),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
 
             // Month Navigator
             Container(
@@ -192,9 +261,19 @@ class _ScheduledPalletPickerModalState extends State<ScheduledPalletPickerModal>
 
                 return InkWell(
                   onTap: () {
+                    final dayBatches = dateToBatches[cellKey] ?? [];
                     setState(() {
                       _selectedDate = cellDate;
+                      _selectedBatchIds.clear();
+                      for (var b in dayBatches) {
+                        _selectedBatchIds.add(b.id);
+                      }
                     });
+
+                    // Instant Take on Date Click (بدون الحاجة للضغط على زر موافق إذا كانت هناك طبالي)
+                    if (dayBatches.isNotEmpty) {
+                      _handleConfirmAdd(allLineBatches);
+                    }
                   },
                   borderRadius: BorderRadius.circular(6),
                   child: Container(
