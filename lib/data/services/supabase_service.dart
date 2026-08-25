@@ -1494,8 +1494,8 @@ class SupabaseService extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Completely clear all operational data (pallets, sorting, shipments, logs, harvesting)
-  /// and reset all user profiles / passwords back to fresh activation state
+  /// Completely clear all operational data (pallets, freezers, sorting, shipments, farms, logs, harvesting, documents)
+  /// leaves only contacts (customers and employees) with zero farms and empty storage
   Future<void> clearDatabaseAndResetPasswords() async {
     // 1. Wipe remote Supabase tables if connected
     if (_supabase != null) {
@@ -1512,7 +1512,13 @@ class SupabaseService extends ChangeNotifier {
         await _supabase!.from('pallets').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       } catch (_) {}
       try {
+        await _supabase!.from('farms').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      } catch (_) {}
+      try {
         await _supabase!.from('field_box_records').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      } catch (_) {}
+      try {
+        await _supabase!.from('field_boxes_records').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       } catch (_) {}
       try {
         await _supabase!.from('shipments').delete().neq('id', '00000000-0000-0000-0000-000000000000');
@@ -1530,8 +1536,9 @@ class SupabaseService extends ChangeNotifier {
       } catch (_) {}
     }
 
-    // 2. Wipe in-memory active lists
+    // 2. Wipe in-memory active lists completely (Zero pallets, Zero farms, Zero history)
     _pallets = [];
+    _farms = [];
     _sortingBatches = [];
     _shipments = [];
     _documents = [];
@@ -1539,15 +1546,20 @@ class SupabaseService extends ChangeNotifier {
     _activityLogs = [];
     _pickingOperations = [];
 
-    // Reset local profiles passwords
+    // Reset local profiles passwords while keeping all contacts intact
     _profiles = _profiles.map((p) => p.copyWith(
       passwordHash: '1234',
       needsPasswordChange: true,
     )).toList();
 
-    // 3. Clear Local Storage caches completely
+    // 3. Clear Local Storage caches completely and persist only cleaned contacts
     await StorageService.clearAllData();
     await StorageService.cacheProfiles(_profiles);
+    await StorageService.cachePallets([]);
+    await StorageService.cacheSortingBatches([]);
+    await StorageService.cacheDocuments([]);
+    await StorageService.cacheActivityLogs([]);
+    await StorageService.cachePickingOperations([]);
 
     notifyListeners();
   }
