@@ -19,15 +19,21 @@ import 'odoo_service.dart';
 import '../../core/utils/phone_utils.dart';
 
 /// Result object for login authentication and identity discovery
+enum LoginStatus { success, userNotFound, invalidPassword }
+
 class LoginResult {
-  final UserProfile user;
+  final UserProfile? user;
   final bool isFirstTime;
   final String sourceDescription;
+  final LoginStatus status;
+  final String? errorMessage;
 
   LoginResult({
-    required this.user,
-    required this.isFirstTime,
-    required this.sourceDescription,
+    this.user,
+    this.isFirstTime = false,
+    this.sourceDescription = '',
+    required this.status,
+    this.errorMessage,
   });
 }
 
@@ -760,39 +766,44 @@ class SupabaseService extends ChangeNotifier {
         debugPrint('Odoo live lookup note: $e');
       }
     }
-    // 4. Fallback for completely new first-time login
+    // 4. If user not found in local profiles, Supabase, or Odoo:
+    // Only automatically bootstrap pre-authorized leadership admins if not present.
     if (user == null) {
-      isFirstTime = true;
       final isKhaled = cleanPhone.contains('0798997449') || rawPhone.contains('798997449') || cleanPhone.contains('798997449');
       final isHusam = cleanPhone.contains('72033020') || rawPhone.contains('72033020') || cleanPhone.contains('33454144') || rawPhone.contains('33454144');
       final isAli = cleanPhone.contains('0795457988') || rawPhone.contains('795457988');
       final isOthman = cleanPhone.contains('0796611533') || rawPhone.contains('796611533');
-      final isEmp = isKhaled || isHusam || isAli || isOthman;
 
-      String assignedName = 'عميل تمور علي (${PhoneUtils.toDisplay(cleanPhone)})';
-      if (isKhaled) assignedName = 'خالد الكوز';
-      if (isHusam) assignedName = 'حسام الكوز';
-      if (isAli) assignedName = 'علي الشريف';
-      if (isOthman) assignedName = 'عثمان ابراهيم عداربة';
+      if (isKhaled || isHusam || isAli || isOthman) {
+        String assignedName = 'خالد الكوز';
+        if (isHusam) assignedName = 'حسام الكوز';
+        if (isAli) assignedName = 'علي الشريف';
+        if (isOthman) assignedName = 'عثمان ابراهيم عداربة';
 
-      user = UserProfile(
-        id: const Uuid().v4(),
-        phone: cleanPhone,
-        name: assignedName,
-        isEmployee: isEmp,
-        companyName: isEmp ? 'تمور علي' : 'مزرعة جديدة',
-        passwordHash: password.isNotEmpty ? password : '1234',
-        needsPasswordChange: password == '1234' || password.isEmpty,
-      );
-      _profiles.add(user);
-      sourceDesc = (isKhaled || isHusam || isAli || isOthman)
-          ? 'حساب الإدارة المعتمد ($assignedName)'
-          : (isEmp ? 'حساب كادر تمور علي' : 'تسجيل مستخدم جديد لأول مرة');
+        user = UserProfile(
+          id: const Uuid().v4(),
+          phone: cleanPhone,
+          name: assignedName,
+          isEmployee: true,
+          companyName: 'تمور علي',
+          passwordHash: password.isNotEmpty ? password : '1234',
+          needsPasswordChange: password == '1234' || password.isEmpty,
+        );
+        _profiles.add(user);
+        sourceDesc = 'حساب الإدارة المعتمد ($assignedName)';
 
-      if (_supabase != null) {
-        try {
-          await _supabase!.from('profiles').upsert(user.toJson());
-        } catch (_) {}
+        if (_supabase != null) {
+          try {
+            await _supabase!.from('profiles').upsert(user.toJson());
+          } catch (_) {}
+        }
+      } else {
+        // DO NOT create an empty customer account!
+        // Explicitly return status userNotFound
+        return LoginResult(
+          status: LoginStatus.userNotFound,
+          errorMessage: 'لا يوجد حساب مسجل برقم الهاتف هذا. يرجى التواصل مع إدارة تمور علي لفتح حساب جديد.',
+        );
       }
     }
 
@@ -813,9 +824,13 @@ class SupabaseService extends ChangeNotifier {
         user: user,
         isFirstTime: isFirstTime,
         sourceDescription: sourceDesc,
+        status: LoginStatus.success,
       );
     }
-    return null;
+    return LoginResult(
+      status: LoginStatus.invalidPassword,
+      errorMessage: 'كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى.',
+    );
   }
 
   /// Change Password

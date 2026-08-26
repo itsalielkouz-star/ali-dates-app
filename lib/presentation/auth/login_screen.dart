@@ -54,8 +54,8 @@ class _LoginScreenState extends State<LoginScreen> {
     final result = await SupabaseService().login(rawPhone, password);
     setState(() => _isLoading = false);
 
-    if (result != null && mounted) {
-      final user = result.user;
+    if (result != null && result.status == LoginStatus.success && result.user != null && mounted) {
+      final user = result.user!;
 
       void proceedToApp(UserProfile confirmedUser) {
         if (password == '1234' || confirmedUser.needsPasswordChange) {
@@ -79,12 +79,52 @@ class _LoginScreenState extends State<LoginScreen> {
         onProceed: proceedToApp,
       );
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('بيانات الدخول غير صحيحة، يرجى التأكد من رقم الهاتف وكلمة المرور'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      final isNoAccount = result?.status == LoginStatus.userNotFound;
+
+      if (isNoAccount) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.person_off_rounded, color: AppColors.error),
+                SizedBox(width: 8),
+                Text('لا يوجد حساب مسجل', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.navy)),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'رقم الهاتف ($rawPhone) ليس لديه حساب مسجل في نظام تمور علي.',
+                  style: const TextStyle(fontSize: 13, color: AppColors.navy, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'يرجى التواصل مع إدارة مصنع تمور علي لفتح وتفعيل حساب جديد.',
+                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+            actions: [
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.navy),
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('حسناً'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result?.errorMessage ?? 'بيانات الدخول غير صحيحة، يرجى التأكد من رقم الهاتف وكلمة المرور'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     }
   }
 
