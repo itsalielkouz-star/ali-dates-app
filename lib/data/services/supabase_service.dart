@@ -1003,6 +1003,26 @@ class SupabaseService extends ChangeNotifier {
     return newContact;
   }
 
+  /// Add or save an employee profile locally and in Supabase
+  Future<UserProfile> saveUserProfile(UserProfile profile) async {
+    final idx = _profiles.indexWhere((p) => p.id == profile.id || PhoneUtils.areEqual(p.phone, profile.phone));
+    if (idx >= 0) {
+      _profiles[idx] = profile;
+    } else {
+      _profiles.insert(0, profile);
+    }
+    await StorageService.cacheProfiles(_profiles);
+
+    if (_supabase != null) {
+      try {
+        await _supabase!.from('profiles').upsert(profile.toJson());
+      } catch (_) {}
+    }
+
+    notifyListeners();
+    return profile;
+  }
+
   List<FarmModel> getFarmsForCustomer(String customerId) {
     return _farms.where((f) => f.customerId == customerId).toList();
   }
