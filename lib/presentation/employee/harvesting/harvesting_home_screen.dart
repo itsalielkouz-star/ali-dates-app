@@ -1070,9 +1070,20 @@ class _HarvestingHomeScreenState extends State<HarvestingHomeScreen>
   }
 
   Widget _buildCurrentStepCard(PickingOperationModel op, StateSetter setSheetState) {
+    final service = SupabaseService();
+    final currentUser = service.currentUser;
+
+    // Check if the current user is the appointed Labor Team Leader
+    final isLaborLeader = currentUser != null &&
+        (currentUser.name.trim().toLowerCase() == op.laborTeamLeaderName.trim().toLowerCase() ||
+         (op.laborTeamLeaderPhone != null && PhoneUtils.areEqual(op.laborTeamLeaderPhone!, currentUser.phone)));
+
+    final isGeneralSupervisor = currentUser != null && currentUser.isGeneralSupervisor;
+
     String buttonLabel = '';
     String nextStatus = '';
     IconData stepIcon = Icons.arrow_forward_rounded;
+    bool isLeaderExclusiveAction = false;
 
     if (op.status == 'planned') {
       buttonLabel = '1. تأكيد إرسال الصناديق إلى المزرعة (Crates Dispatched)';
@@ -1087,13 +1098,15 @@ class _HarvestingHomeScreenState extends State<HarvestingHomeScreen>
       nextStatus = 'at_farm';
       stepIcon = Icons.location_on_rounded;
     } else if (op.status == 'at_farm') {
-      buttonLabel = '4. بدء عمليات القطاف الفعلي في الحقل (Start Harvesting)';
+      buttonLabel = '4. ⏱️ بدء القطاف الفعلي وتشغيل العداد وتحديد الموقع (Start Harvesting)';
       nextStatus = 'harvesting_in_progress';
       stepIcon = Icons.play_arrow_rounded;
+      isLeaderExclusiveAction = true;
     } else if (op.status == 'harvesting_in_progress' || op.status == 'loads_dispatched') {
-      buttonLabel = '5. إنهاء أعمال القطاف في الحقل (End Harvesting)';
+      buttonLabel = '5. ⏹️ إنهاء أعمال القطاف وإيقاف العداد (End Harvesting)';
       nextStatus = 'harvesting_completed';
-      stepIcon = Icons.stop_rounded;
+      stepIcon = Icons.stop_circle_rounded;
+      isLeaderExclusiveAction = true;
     } else if (op.status == 'harvesting_completed') {
       buttonLabel = '6. مغادرة المزرعة باتجاه مركز تمور علي (Leave Farm)';
       nextStatus = 'in_transit';
@@ -1103,6 +1116,8 @@ class _HarvestingHomeScreenState extends State<HarvestingHomeScreen>
       nextStatus = 'returned_to_facility';
       stepIcon = Icons.warehouse_rounded;
     }
+
+    final canClick = !isLeaderExclusiveAction || isLaborLeader || isGeneralSupervisor;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1115,13 +1130,38 @@ class _HarvestingHomeScreenState extends State<HarvestingHomeScreen>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Icon(Icons.info_outline_rounded, color: Color(0xFFD97706), size: 22),
-              const SizedBox(width: 8),
-              Text(
-                'المرحلة الحالية: ${op.statusAr}',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF92400E)),
+              Row(
+                children: [
+                  const Icon(Icons.info_outline_rounded, color: Color(0xFFD97706), size: 22),
+                  const SizedBox(width: 8),
+                  Text(
+                    'المرحلة الحالية: ${op.statusAr}',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF92400E)),
+                  ),
+                ],
               ),
+              if (op.harvestingStartTime != null) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFD97706)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.timer_rounded, color: Color(0xFFD97706), size: 14),
+                      const SizedBox(width: 4),
+                      Text(
+                        'المدة: ${op.formattedDuration}',
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF92400E)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 8),
@@ -1129,23 +1169,74 @@ class _HarvestingHomeScreenState extends State<HarvestingHomeScreen>
             'المشرف: ${op.supervisorName} | رئيس العمال: ${op.laborTeamLeaderName} (${op.actualWorkers} عامل)',
             style: const TextStyle(fontSize: 12, color: AppColors.navyDark),
           ),
+          if (op.startLatitude != null) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const Icon(Icons.pin_drop_rounded, color: Color(0xFF0F766E), size: 15),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    'موقع الحقل: ${op.startLocationName ?? "المزرعة"} (N: ${op.startLatitude?.toStringAsFixed(4)}, E: ${op.startLongitude?.toStringAsFixed(4)})',
+                    style: const TextStyle(fontSize: 11, color: Color(0xFF0F766E), fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (isLeaderExclusiveAction && !isLaborLeader && !isGeneralSupervisor) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEE2E2),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFFCA5A5)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.lock_rounded, color: AppColors.error, size: 16),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      '🔒 زر تشغيل / إنهاء العداد مخصص حصرياً لرئيس العمال المعين (${op.laborTeamLeaderName})',
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF991B1B), fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           if (buttonLabel.isNotEmpty) ...[
             const SizedBox(height: 12),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFD97706),
+                backgroundColor: canClick ? const Color(0xFFD97706) : Colors.grey,
                 padding: const EdgeInsets.symmetric(vertical: 13),
               ),
               icon: Icon(stepIcon, color: Colors.white),
-              label: Text(buttonLabel, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13)),
-              onPressed: () async {
-                await SupabaseService().advancePickingLifecycle(
-                  operationId: op.id,
-                  newStatus: nextStatus,
-                );
-                setSheetState(() {});
-                setState(() {});
-              },
+              label: Text(
+                buttonLabel,
+                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
+                textAlign: TextAlign.center,
+              ),
+              onPressed: canClick
+                  ? () async {
+                      await SupabaseService().advancePickingLifecycle(
+                        operationId: op.id,
+                        newStatus: nextStatus,
+                      );
+                      setSheetState(() {});
+                      setState(() {});
+                    }
+                  : () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('⚠️ فقط رئيس العمال (${op.laborTeamLeaderName}) أو المشرف العام مخول ببدء/إيقاف عداد الحصاد والموقع'),
+                          backgroundColor: AppColors.warning,
+                        ),
+                      );
+                    },
             ),
           ],
         ],
@@ -1613,6 +1704,20 @@ class _HarvestingHomeScreenState extends State<HarvestingHomeScreen>
                     pw.Text('رئيس العمال (عامل يومية موزع الأجور): ${op.laborTeamLeaderName}'),
                   ],
                 ),
+              ),
+              pw.SizedBox(height: 14),
+              pw.Text('توثيق الوقت والموقع الميداني (Field Time & Location Tracking):', style: pw.TextStyle(font: fontBold, fontSize: 13)),
+              pw.SizedBox(height: 6),
+              pw.Table.fromTextArray(
+                headers: ['وقت بدء القطاف', 'وقت انتهاء القطاف', 'الوقت المستغرق الفعلي (Time Taken)', 'موقع وإحداثيات الحقل'],
+                data: [
+                  [
+                    op.harvestingStartTime != null ? DateFormat('HH:mm - yyyy/MM/dd').format(op.harvestingStartTime!) : 'غير مسجل',
+                    op.harvestingEndTime != null ? DateFormat('HH:mm - yyyy/MM/dd').format(op.harvestingEndTime!) : 'قيد العمل',
+                    op.formattedDuration,
+                    op.startLatitude != null ? '${op.startLocationName ?? "الحقل"}\n(N: ${op.startLatitude?.toStringAsFixed(4)}, E: ${op.startLongitude?.toStringAsFixed(4)})' : 'مزرعة ${op.farmName}',
+                  ],
+                ],
               ),
               pw.SizedBox(height: 14),
               pw.Text('مقارنة المخطط والفعلي (Planned vs Actual):', style: pw.TextStyle(font: fontBold, fontSize: 13)),

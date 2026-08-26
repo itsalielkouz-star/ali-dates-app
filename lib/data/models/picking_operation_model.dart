@@ -237,6 +237,16 @@ class PickingOperationModel {
   final String? notes;
   final DateTime createdAt;
 
+  // Location Tracking & Live Coordinates
+  final double? startLatitude;
+  final double? startLongitude;
+  final double? endLatitude;
+  final double? endLongitude;
+  final double? currentLatitude;
+  final double? currentLongitude;
+  final String? startLocationName;
+  final String? endLocationName;
+
   PickingOperationModel({
     required this.id,
     required this.code,
@@ -274,16 +284,43 @@ class PickingOperationModel {
     this.isLaborPaid = false,
     this.isSettled = false,
     this.notes,
+    this.startLatitude,
+    this.startLongitude,
+    this.endLatitude,
+    this.endLongitude,
+    this.currentLatitude,
+    this.currentLongitude,
+    this.startLocationName,
+    this.endLocationName,
     DateTime? createdAt,
   })  : plannedDate = plannedDate ?? DateTime.now(),
         crateReconciliation = crateReconciliation ?? CrateReconciliationModel(),
         createdAt = createdAt ?? DateTime.now();
 
-  // --- Computed Financial Properties ---
+  // --- Computed Financial & Time Properties ---
   double get totalLaborCost => actualWorkers * dailyWorkerRate;
   double get totalExpensesCost => expenses.fold(0.0, (sum, e) => sum + e.amount);
   double get totalPickingCost => totalLaborCost + totalExpensesCost;
   int get totalHarvestedCrates => loads.fold(0, (sum, l) => sum + l.crateCount);
+
+  /// Calculated time taken for actual harvesting
+  Duration? get harvestingDuration {
+    if (harvestingStartTime == null) return null;
+    final end = harvestingEndTime ?? DateTime.now();
+    return end.difference(harvestingStartTime!);
+  }
+
+  /// Formatted duration string (e.g. "4 ساعات و 25 دقيقة")
+  String get formattedDuration {
+    final d = harvestingDuration;
+    if (d == null) return 'غير محدد';
+    final hours = d.inHours;
+    final minutes = d.inMinutes.remainder(60);
+    if (hours > 0) {
+      return '$hours ساعة و $minutes دقيقة';
+    }
+    return '$minutes دقيقة';
+  }
 
   // Status Arabic Display
   String get statusAr {
@@ -387,6 +424,14 @@ class PickingOperationModel {
       isLaborPaid: json['is_labor_paid'] == true,
       isSettled: json['is_settled'] == true,
       notes: json['notes']?.toString(),
+      startLatitude: (json['start_latitude'] is num) ? (json['start_latitude'] as num).toDouble() : null,
+      startLongitude: (json['start_longitude'] is num) ? (json['start_longitude'] as num).toDouble() : null,
+      endLatitude: (json['end_latitude'] is num) ? (json['end_latitude'] as num).toDouble() : null,
+      endLongitude: (json['end_longitude'] is num) ? (json['end_longitude'] as num).toDouble() : null,
+      currentLatitude: (json['current_latitude'] is num) ? (json['current_latitude'] as num).toDouble() : null,
+      currentLongitude: (json['current_longitude'] is num) ? (json['current_longitude'] as num).toDouble() : null,
+      startLocationName: json['start_location_name']?.toString(),
+      endLocationName: json['end_location_name']?.toString(),
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now()
           : DateTime.now(),
@@ -431,6 +476,14 @@ class PickingOperationModel {
       'is_labor_paid': isLaborPaid,
       'is_settled': isSettled,
       'notes': notes,
+      'start_latitude': startLatitude,
+      'start_longitude': startLongitude,
+      'end_latitude': endLatitude,
+      'end_longitude': endLongitude,
+      'current_latitude': currentLatitude,
+      'current_longitude': currentLongitude,
+      'start_location_name': startLocationName,
+      'end_location_name': endLocationName,
       'created_at': createdAt.toIso8601String(),
     };
   }
@@ -472,6 +525,14 @@ class PickingOperationModel {
     bool? isLaborPaid,
     bool? isSettled,
     String? notes,
+    double? startLatitude,
+    double? startLongitude,
+    double? endLatitude,
+    double? endLongitude,
+    double? currentLatitude,
+    double? currentLongitude,
+    String? startLocationName,
+    String? endLocationName,
   }) {
     return PickingOperationModel(
       id: id ?? this.id,
@@ -510,6 +571,14 @@ class PickingOperationModel {
       isLaborPaid: isLaborPaid ?? this.isLaborPaid,
       isSettled: isSettled ?? this.isSettled,
       notes: notes ?? this.notes,
+      startLatitude: startLatitude ?? this.startLatitude,
+      startLongitude: startLongitude ?? this.startLongitude,
+      endLatitude: endLatitude ?? this.endLatitude,
+      endLongitude: endLongitude ?? this.endLongitude,
+      currentLatitude: currentLatitude ?? this.currentLatitude,
+      currentLongitude: currentLongitude ?? this.currentLongitude,
+      startLocationName: startLocationName ?? this.startLocationName,
+      endLocationName: endLocationName ?? this.endLocationName,
       createdAt: createdAt,
     );
   }
