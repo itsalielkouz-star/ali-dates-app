@@ -7,6 +7,8 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
+import 'package:uuid/uuid.dart';
+import '../../../core/utils/phone_utils.dart';
 import '../../../data/models/picking_operation_model.dart';
 import '../../../data/models/user_profile.dart';
 import '../../../data/models/farm_model.dart';
@@ -629,7 +631,7 @@ class _HarvestingHomeScreenState extends State<HarvestingHomeScreen>
 
                     const SizedBox(height: 12),
 
-                    // Roles Distinction: Supervisor (Ali Dates) vs Labor Team Leader (Daily Worker)
+                    // Roles Distinction: General Supervisor (Khaled & Othman Only) vs Labor Team Leader (Select or Add Employee)
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -647,30 +649,92 @@ class _HarvestingHomeScreenState extends State<HarvestingHomeScreen>
                               Text('تحديد المسؤوليات والقيادة في الحقل:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.navy)),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          TextFormField(
-                            initialValue: supervisor,
+                          const SizedBox(height: 10),
+
+                          // 1. General Supervisor (Strictly Khaled Elkouz or Othman Adarbeh)
+                          DropdownButtonFormField<String>(
+                            value: (supervisor.contains('عثمان') || supervisor.contains('othman'))
+                                ? 'عثمان ابراهيم عداربة (المشرف العام)'
+                                : 'خالد الكوز (المشرف العام)',
                             decoration: const InputDecoration(
-                              labelText: 'مشرف تمور علي (Ali Dates Supervisor) *',
-                              helperText: 'موظف تمور علي المسؤول عن توثيق وضبط العملية',
-                              prefixIcon: Icon(Icons.shield_rounded),
+                              labelText: 'المشرف العام لتمور علي *',
+                              helperText: 'المشرف العام المعتمد والمسؤول عن ضبط وتوثيق العملية',
+                              prefixIcon: Icon(Icons.shield_rounded, color: Color(0xFFD97706)),
                             ),
-                            onChanged: (v) => supervisor = v.trim(),
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'خالد الكوز (المشرف العام)',
+                                child: Text('خالد الكوز (المشرف العام)', style: TextStyle(fontWeight: FontWeight.bold)),
+                              ),
+                              DropdownMenuItem(
+                                value: 'عثمان ابراهيم عداربة (المشرف العام)',
+                                child: Text('عثمان ابراهيم عداربة (المشرف العام)', style: TextStyle(fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                            onChanged: (val) {
+                              if (val != null) {
+                                setModalState(() => supervisor = val);
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 12),
+
+                          // 2. Labor Team Leader (Select from Employees Dropdown + Add New Employee Button)
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: DropdownButtonFormField<String>(
+                                  value: service.profiles.where((p) => p.isEmployee).any((e) => e.name == laborLeaderCtrl.text.trim())
+                                      ? laborLeaderCtrl.text.trim()
+                                      : null,
+                                  decoration: const InputDecoration(
+                                    labelText: 'رئيس العمال (Labor Team Leader) *',
+                                    helperText: 'اختر الموظف المسؤول عن قيادة فريق العمال وتوزيع أجورهم',
+                                    prefixIcon: Icon(Icons.groups_rounded),
+                                  ),
+                                  hint: Text(laborLeaderCtrl.text.isNotEmpty ? laborLeaderCtrl.text : 'اختر موظف كرئيس عمال'),
+                                  items: service.profiles.where((p) => p.isEmployee).map((emp) {
+                                    return DropdownMenuItem(
+                                      value: emp.name,
+                                      child: Text('${emp.name} (${emp.phone})', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    );
+                                  }).toList(),
+                                  onChanged: (val) {
+                                    if (val != null) {
+                                      final emp = service.profiles.firstWhere((p) => p.name == val);
+                                      setModalState(() {
+                                        laborLeaderCtrl.text = emp.name;
+                                        laborLeaderPhoneCtrl.text = emp.phone;
+                                      });
+                                    }
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: IconButton.filledTonal(
+                                  icon: const Icon(Icons.person_add_alt_1_rounded),
+                                  tooltip: 'إضافة موظف جديد كرئيس عمال',
+                                  onPressed: () => _openAddNewEmployeeModal(context, (newEmp) {
+                                    setModalState(() {
+                                      laborLeaderCtrl.text = newEmp.name;
+                                      laborLeaderPhoneCtrl.text = newEmp.phone;
+                                    });
+                                  }),
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 8),
-                          TextField(
-                            controller: laborLeaderCtrl,
-                            decoration: const InputDecoration(
-                              labelText: 'رئيس العمال (Labor Team Leader) *',
-                              helperText: 'أحد عمال اليومية لتنسيق العمال وتوزيع أجورهم',
-                              prefixIcon: Icon(Icons.groups_rounded),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
+
+                          // 3. Labor Team Leader Phone
                           TextField(
                             controller: laborLeaderPhoneCtrl,
+                            keyboardType: TextInputType.phone,
                             decoration: const InputDecoration(
-                              labelText: 'هاتف رئيس العمال للتواصل',
+                              labelText: 'هاتف رئيس العمال للتواصل *',
                               prefixIcon: Icon(Icons.phone_rounded),
                             ),
                           ),
@@ -799,11 +863,111 @@ class _HarvestingHomeScreenState extends State<HarvestingHomeScreen>
         },
       ),
     );
-  }
+  void _openAddNewEmployeeModal(BuildContext context, Function(UserProfile newEmployee) onEmployeeAdded) {
+    final formKey = GlobalKey<FormState>();
+    final nameCtrl = TextEditingController();
+    final phoneCtrl = TextEditingController();
 
-  // ===========================================================================
-  // EXECUTION & LIFECYCLE WORKSPACE MODAL
-  // ===========================================================================
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.navyUltraLight,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.person_add_rounded, color: AppColors.navy, size: 22),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'إضافة موظف جديد كرئيس عمال',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.navy),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'اسم الموظف / رئيس العمال *',
+                    hintText: 'مثال: محمد العمري',
+                    prefixIcon: Icon(Icons.badge_rounded),
+                  ),
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'الاسم مطلوب' : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: phoneCtrl,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'رقم هاتف الموظف *',
+                    hintText: 'مثال: 0791234567',
+                    prefixIcon: Icon(Icons.phone_iphone_rounded),
+                  ),
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'رقم الهاتف مطلوب' : null,
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(ctx).pop(),
+                        child: const Text('إلغاء'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.navy),
+                        onPressed: () async {
+                          if (!formKey.currentState!.validate()) return;
+                          final cleanPhone = PhoneUtils.toLocal(phoneCtrl.text.trim());
+                          final newProfile = UserProfile(
+                            id: const Uuid().v4(),
+                            phone: cleanPhone,
+                            name: nameCtrl.text.trim(),
+                            isEmployee: true,
+                            companyName: 'تمور علي',
+                            passwordHash: '1234',
+                            needsPasswordChange: false,
+                          );
+
+                          await SupabaseService().saveUserProfile(newProfile);
+                          if (mounted) {
+                            Navigator.of(ctx).pop();
+                            onEmployeeAdded(newProfile);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('تمت إضافة الموظف (${newProfile.name}) بنجاح كرئيس عمال'),
+                                backgroundColor: AppColors.success,
+                              ),
+                            );
+                          }
+                        },
+                        child: const Text('حفظ الموظف', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
   void _openFieldExecutionScreen(PickingOperationModel op) {
     showModalBottomSheet(
       context: context,

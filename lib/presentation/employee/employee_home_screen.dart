@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/utils/phone_utils.dart';
 import '../../data/services/supabase_service.dart';
 import '../auth/login_screen.dart';
 import '../widgets/app_brand_logo.dart';
@@ -27,6 +28,52 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
   void initState() {
     super.initState();
     SupabaseService().addListener(_onServiceUpdate);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkLaborLeaderRoleNotification());
+  }
+
+  void _checkLaborLeaderRoleNotification() {
+    final service = SupabaseService();
+    final user = service.currentUser;
+    if (user == null) return;
+
+    final myOps = service.pickingOperations.where((op) {
+      final isNameMatch = op.laborTeamLeaderName.trim().isNotEmpty &&
+          user.name.toLowerCase().contains(op.laborTeamLeaderName.toLowerCase());
+      final isPhoneMatch = op.laborTeamLeaderPhone != null &&
+          PhoneUtils.areEqual(op.laborTeamLeaderPhone!, user.phone);
+      return (isNameMatch || isPhoneMatch) && op.status != 'settled';
+    }).toList();
+
+    if (myOps.isNotEmpty && mounted) {
+      final latest = myOps.first;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.groups_rounded, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '👥 تنبيه: تم تكليفك كرئيس عمال لعملية الحصاد (${latest.code}) بمزرعة (${latest.farmName})',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFFD97706),
+          duration: const Duration(seconds: 5),
+          action: SnackBarAction(
+            label: 'عرض الحصاد',
+            textColor: Colors.white,
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const HarvestingHomeScreen()),
+              );
+            },
+          ),
+        ),
+      );
+    }
   }
 
   @override

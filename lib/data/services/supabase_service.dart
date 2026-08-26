@@ -1630,8 +1630,16 @@ class SupabaseService extends ChangeNotifier {
     await logAction(
       actionType: 'harvest_plan',
       title: 'إنشاء خطة قطاف وصرف صناديق ($code)',
-      details: 'تم جدولة عملية قطاف لمزرعة ($farmName - $landName) للمزارع ($customerName) وصرف ($plannedCrates) صندوق حقل من رصيد المصنع.',
-      employeeName: supervisorName,
+      details: 'تم جدولة عملية قطاف لمزرعة ($farmName - $landName) للمزارع ($customerName) بإشراف المشرف العام ($supervisorName) ورئيس العمال ($laborTeamLeaderName) وصرف ($plannedCrates) صندوق حقل من رصيد المصنع.',
+      supervisorName: supervisorName,
+      employeeName: laborTeamLeaderName,
+    );
+
+    // Send push & in-app notification to the designated Labor Team Leader
+    NotificationService().showCustomerStatusNotification(
+      id: operation.id.hashCode,
+      title: '👥 تكليف بمهمة رئيس عمال الحصاد ($code)',
+      body: 'مرحباً $laborTeamLeaderName، تم تعيينك رئيساً لفريق عمال الحصاد في مزرعة ($farmName - $landName) بإشراف المشرف العام ($supervisorName).',
     );
 
     notifyListeners();
