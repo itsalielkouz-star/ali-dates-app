@@ -126,11 +126,81 @@ class _HarvestingHomeScreenState extends State<HarvestingHomeScreen>
           o.laborTeamLeaderName.toLowerCase().contains(q);
     }).toList();
 
+    final service = SupabaseService();
+    final availableBoxes = service.availableBoxesInFactory;
+    final totalBoxes = service.totalCompanyBoxes;
+    final distributedBoxes = service.totalBoxesWithCustomers;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Factory Stock Balance Card
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [AppColors.navy, Color(0xFF1E3A8A)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.navy.withAlpha(50),
+                  blurRadius: 6,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withAlpha(30),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.all_inbox_rounded, color: AppColors.dateGold, size: 22),
+                    ),
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'رصيد صناديق مصنع تمور علي المتاحة:',
+                          style: TextStyle(fontSize: 11, color: Colors.white70),
+                        ),
+                        Text(
+                          '$availableBoxes صندوق متوفر بالمستودع',
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'الإجمالي: $totalBoxes',
+                      style: const TextStyle(fontSize: 10.5, color: Colors.white70),
+                    ),
+                    Text(
+                      'في الحقول: $distributedBoxes',
+                      style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: AppColors.dateGold),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
           // Search & Filter
           TextField(
             decoration: InputDecoration(
@@ -869,6 +939,7 @@ class _HarvestingHomeScreenState extends State<HarvestingHomeScreen>
     final formKey = GlobalKey<FormState>();
     final nameCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();
+    final passwordCtrl = TextEditingController(text: '1234');
 
     showDialog(
       context: context,
@@ -893,9 +964,20 @@ class _HarvestingHomeScreenState extends State<HarvestingHomeScreen>
                       child: const Icon(Icons.person_add_rounded, color: AppColors.navy, size: 22),
                     ),
                     const SizedBox(width: 8),
-                    const Text(
-                      'إضافة موظف جديد كرئيس عمال',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.navy),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'إنشاء حساب موظف / رئيس عمال جديد',
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.navy),
+                          ),
+                          Text(
+                            'سيتم تفعيل حساب الموظف فوراً لتسجيل الدخول بالتطبيق',
+                            style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -904,7 +986,7 @@ class _HarvestingHomeScreenState extends State<HarvestingHomeScreen>
                   controller: nameCtrl,
                   decoration: const InputDecoration(
                     labelText: 'اسم الموظف / رئيس العمال *',
-                    hintText: 'مثال: محمد العمري',
+                    hintText: 'مثال: أحمد العبادي',
                     prefixIcon: Icon(Icons.badge_rounded),
                   ),
                   validator: (v) => (v == null || v.trim().isEmpty) ? 'الاسم مطلوب' : null,
@@ -914,11 +996,21 @@ class _HarvestingHomeScreenState extends State<HarvestingHomeScreen>
                   controller: phoneCtrl,
                   keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(
-                    labelText: 'رقم هاتف الموظف *',
+                    labelText: 'رقم هاتف الموظف (اسم المستخدم للدخول) *',
                     hintText: 'مثال: 0791234567',
                     prefixIcon: Icon(Icons.phone_iphone_rounded),
                   ),
                   validator: (v) => (v == null || v.trim().isEmpty) ? 'رقم الهاتف مطلوب' : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: passwordCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'كلمة المرور لتسجيل الدخول *',
+                    helperText: 'الافتراضية: 1234 (يمكن للموظف تغييرها بعد الدخول)',
+                    prefixIcon: Icon(Icons.lock_outline_rounded),
+                  ),
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'كلمة المرور مطلوبة' : null,
                 ),
                 const SizedBox(height: 20),
                 Row(
@@ -931,19 +1023,23 @@ class _HarvestingHomeScreenState extends State<HarvestingHomeScreen>
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: ElevatedButton(
+                      flex: 2,
+                      child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(backgroundColor: AppColors.navy),
+                        icon: const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 18),
+                        label: const Text('إنشاء الحساب وتعيينه', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                         onPressed: () async {
                           if (!formKey.currentState!.validate()) return;
                           final cleanPhone = PhoneUtils.toLocal(phoneCtrl.text.trim());
+                          final pass = passwordCtrl.text.trim();
                           final newProfile = UserProfile(
                             id: const Uuid().v4(),
                             phone: cleanPhone,
                             name: nameCtrl.text.trim(),
                             isEmployee: true,
                             companyName: 'تمور علي',
-                            passwordHash: '1234',
-                            needsPasswordChange: false,
+                            passwordHash: pass.isNotEmpty ? pass : '1234',
+                            needsPasswordChange: pass == '1234',
                           );
 
                           await SupabaseService().saveUserProfile(newProfile);
@@ -952,13 +1048,13 @@ class _HarvestingHomeScreenState extends State<HarvestingHomeScreen>
                             onEmployeeAdded(newProfile);
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('تمت إضافة الموظف (${newProfile.name}) بنجاح كرئيس عمال'),
+                                content: Text('✅ تم إنشاء حساب الموظف (${newProfile.name}) بنجاح ويمكنه الدخول فوراً برقم هاتف: ${newProfile.phone}'),
                                 backgroundColor: AppColors.success,
+                                duration: const Duration(seconds: 4),
                               ),
                             );
                           }
                         },
-                        child: const Text('حفظ الموظف', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],
