@@ -863,6 +863,8 @@ class _HarvestingHomeScreenState extends State<HarvestingHomeScreen>
         },
       ),
     );
+  }
+
   void _openAddNewEmployeeModal(BuildContext context, Function(UserProfile newEmployee) onEmployeeAdded) {
     final formKey = GlobalKey<FormState>();
     final nameCtrl = TextEditingController();
