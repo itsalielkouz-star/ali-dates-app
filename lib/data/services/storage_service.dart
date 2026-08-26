@@ -116,6 +116,7 @@ class StorageService {
   }
 
   // --- Cached Activity Logs ---
+  static const String _keyActivityLogs = 'cached_activity_logs';
   static const String _keyShiftSupervisor = 'shift_supervisor_name';
   static const String _keyPreSortSupervisor = 'shift_supervisor_presort';
   static const String _keyAutoSortSupervisor = 'shift_supervisor_autosort';
