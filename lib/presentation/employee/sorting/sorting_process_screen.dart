@@ -639,7 +639,7 @@ class _SortingProcessScreenState extends State<SortingProcessScreen> {
       batchId: widget.batch.id,
       docType: 'sorting_report',
       title: 'تقرير نتائج الفرز - ${widget.batch.customerName}',
-      fileName: 'تقرير_نتائج_الفرز_${widget.batch.customerName.replaceAll(' ', '_')}_$timestamp.pdf',
+      fileName: 'تقرير_نتائج_الفرز_${(widget.batch.customerName ?? "عميل").replaceAll(' ', '_')}_$timestamp.pdf',
     );
     await SupabaseService().saveDocument(docModel);
 

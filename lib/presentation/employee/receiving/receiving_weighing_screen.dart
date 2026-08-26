@@ -4,6 +4,7 @@ import 'package:printing/printing.dart';
 import 'package:pdf/pdf.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/notification_service.dart';
 import '../../../core/utils/pdf_generator.dart';
 import '../../../core/utils/qr_helper.dart';
 import '../../../data/models/user_profile.dart';
@@ -263,6 +264,36 @@ class _ReceivingWeighingScreenState extends State<ReceivingWeighingScreen> {
       fileName: 'سند_استلام_شحنة_${cleanPlate}_$timestamp.pdf',
     );
     await SupabaseService().saveDocument(docModel);
+
+    // 4. Check if receiving is for a Harvest Supervisor and Notify Admins with Full Breakdown
+    final service = SupabaseService();
+    final harvestOpIdx = service.pickingOperations.indexWhere(
+      (o) => o.laborTeamLeaderName.trim().toLowerCase() == widget.customer.name.trim().toLowerCase() ||
+             o.supervisorName.trim().toLowerCase() == widget.customer.name.trim().toLowerCase() ||
+             o.customerId == widget.customer.id,
+    );
+
+    final totalBoxesHarvested = _registeredPallets.fold<int>(0, (sum, p) => sum + p.boxCount);
+    final totalNetKg = _registeredPallets.fold<double>(0.0, (sum, p) => sum + p.netWeight);
+    final palletCount = _registeredPallets.length;
+
+    String harvestDurationText = 'غير محدد';
+    if (harvestOpIdx != -1) {
+      final hOp = service.pickingOperations[harvestOpIdx];
+      harvestDurationText = hOp.formattedDuration;
+      // Advance picking operation to weighed/received
+      await service.advancePickingLifecycle(
+        operationId: hOp.id,
+        newStatus: 'returned_to_facility',
+      );
+    }
+
+    // Send Detailed Admin Notification
+    NotificationService().showCustomerStatusNotification(
+      id: widget.shipment.id.hashCode,
+      title: '📦 وصول واستلام محصول الحصاد في المصنع',
+      body: 'قام ${widget.customer.name} بتسليم المحصول: $totalBoxesHarvested صندوق على $palletCount طبالي (صافي: ${totalNetKg.toStringAsFixed(1)} كغ) - مدة العمل: $harvestDurationText.',
+    );
 
     // 4. Preview / Download & Print PDF
     if (mounted) {

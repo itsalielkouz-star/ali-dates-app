@@ -247,6 +247,10 @@ class PickingOperationModel {
   final String? startLocationName;
   final String? endLocationName;
 
+  final String? boxHandoverIssuerSignature; // توقيع من سلّم الصناديق
+  final String? boxHandoverReceiverSignature; // توقيع المشرف المستلم للصناديق
+  final int collectedBoxesCount; // الصناديق الفعلية المستلمة
+
   PickingOperationModel({
     required this.id,
     required this.code,
@@ -292,6 +296,9 @@ class PickingOperationModel {
     this.currentLongitude,
     this.startLocationName,
     this.endLocationName,
+    this.boxHandoverIssuerSignature,
+    this.boxHandoverReceiverSignature,
+    this.collectedBoxesCount = 0,
     DateTime? createdAt,
   })  : plannedDate = plannedDate ?? DateTime.now(),
         crateReconciliation = crateReconciliation ?? CrateReconciliationModel(),
@@ -320,6 +327,29 @@ class PickingOperationModel {
       return '$hours ساعة و $minutes دقيقة';
     }
     return '$minutes دقيقة';
+  }
+
+  /// Calculates distance in meters between start coordinates and current coordinates
+  double? get distanceFromStartMeters {
+    if (startLatitude == null || startLongitude == null) return null;
+    final lat2 = currentLatitude ?? endLatitude ?? startLatitude!;
+    final lon2 = currentLongitude ?? endLongitude ?? startLongitude!;
+
+    final x = (lon2 - startLongitude!) * 111320.0 * 0.85; // rough cos(31 deg)
+    final y = (lat2 - startLatitude!) * 110540.0;
+    return (x * x + y * y > 0) ? (x * x + y * y) : 0.0;
+  }
+
+  /// Whether the user is within 1.0 km radius (1000 meters) of the starting harvesting field
+  bool get isWithin1KmOfStart {
+    if (startLatitude == null || startLongitude == null) return true;
+    final endLat = currentLatitude ?? endLatitude ?? startLatitude!;
+    final endLng = currentLongitude ?? endLongitude ?? startLongitude!;
+    final diffLat = (endLat - startLatitude!).abs() * 111000; // meters
+    final diffLng = (endLng - startLongitude!).abs() * 95000;  // meters
+    final approxDistM = (diffLat * diffLat + diffLng * diffLng);
+    // 1000m squared = 1,000,000
+    return approxDistM <= 1000000;
   }
 
   // Status Arabic Display
@@ -432,6 +462,9 @@ class PickingOperationModel {
       currentLongitude: (json['current_longitude'] is num) ? (json['current_longitude'] as num).toDouble() : null,
       startLocationName: json['start_location_name']?.toString(),
       endLocationName: json['end_location_name']?.toString(),
+      boxHandoverIssuerSignature: json['box_handover_issuer_signature']?.toString(),
+      boxHandoverReceiverSignature: json['box_handover_receiver_signature']?.toString(),
+      collectedBoxesCount: json['collected_boxes_count'] is int ? json['collected_boxes_count'] : 0,
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now()
           : DateTime.now(),
@@ -484,6 +517,9 @@ class PickingOperationModel {
       'current_longitude': currentLongitude,
       'start_location_name': startLocationName,
       'end_location_name': endLocationName,
+      'box_handover_issuer_signature': boxHandoverIssuerSignature,
+      'box_handover_receiver_signature': boxHandoverReceiverSignature,
+      'collected_boxes_count': collectedBoxesCount,
       'created_at': createdAt.toIso8601String(),
     };
   }
@@ -533,6 +569,9 @@ class PickingOperationModel {
     double? currentLongitude,
     String? startLocationName,
     String? endLocationName,
+    String? boxHandoverIssuerSignature,
+    String? boxHandoverReceiverSignature,
+    int? collectedBoxesCount,
   }) {
     return PickingOperationModel(
       id: id ?? this.id,
@@ -579,6 +618,9 @@ class PickingOperationModel {
       currentLongitude: currentLongitude ?? this.currentLongitude,
       startLocationName: startLocationName ?? this.startLocationName,
       endLocationName: endLocationName ?? this.endLocationName,
+      boxHandoverIssuerSignature: boxHandoverIssuerSignature ?? this.boxHandoverIssuerSignature,
+      boxHandoverReceiverSignature: boxHandoverReceiverSignature ?? this.boxHandoverReceiverSignature,
+      collectedBoxesCount: collectedBoxesCount ?? this.collectedBoxesCount,
       createdAt: createdAt,
     );
   }

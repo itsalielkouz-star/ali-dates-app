@@ -878,10 +878,20 @@ class _AdminManagementScreenState extends State<AdminManagementScreen>
             pw.SizedBox(height: 15),
             pw.Table.fromTextArray(
               headers: ['الوقت', 'العملية', 'التفاصيل', 'الموظف المنفذ', 'مسؤول الشفت'],
-              headerStyle: pw.TextStyle(font: fontBold, color: PdfColors.white),
+              headerStyle: pw.TextStyle(font: fontBold, fontSize: 8.5, color: PdfColors.white),
+              cellStyle: const pw.TextStyle(fontSize: 7.5),
               headerDecoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFF0F172A)),
+              headerAlignment: pw.Alignment.center,
               cellAlignment: pw.Alignment.centerRight,
-              data: logs.take(30).map((l) {
+              cellPadding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+              columnWidths: const {
+                0: pw.FixedColumnWidth(48),
+                1: pw.FixedColumnWidth(75),
+                2: pw.FlexColumnWidth(3),
+                3: pw.FixedColumnWidth(65),
+                4: pw.FixedColumnWidth(65),
+              },
+              data: logs.take(50).map((l) {
                 return [
                   DateFormat('HH:mm:ss').format(l.timestamp),
                   l.title,

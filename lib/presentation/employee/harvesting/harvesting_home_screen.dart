@@ -1169,12 +1169,13 @@ class _HarvestingHomeScreenState extends State<HarvestingHomeScreen>
     final service = SupabaseService();
     final currentUser = service.currentUser;
 
-    // Check if the current user is the appointed Labor Team Leader
-    final isLaborLeader = currentUser != null &&
-        (currentUser.name.trim().toLowerCase() == op.laborTeamLeaderName.trim().toLowerCase() ||
+    // Check if the current user is the appointed Supervisor for this harvest (or Admin)
+    final isHarvestSupervisor = currentUser != null &&
+        (currentUser.name.trim().toLowerCase() == op.supervisorName.trim().toLowerCase() ||
+         currentUser.name.trim().toLowerCase() == op.laborTeamLeaderName.trim().toLowerCase() ||
          (op.laborTeamLeaderPhone != null && PhoneUtils.areEqual(op.laborTeamLeaderPhone!, currentUser.phone)));
 
-    final isGeneralSupervisor = currentUser != null && currentUser.isGeneralSupervisor;
+    final isGeneralSupervisor = currentUser != null && (currentUser.isGeneralSupervisor || currentUser.isAdmin);
 
     String buttonLabel = '';
     String nextStatus = '';
@@ -1182,24 +1183,27 @@ class _HarvestingHomeScreenState extends State<HarvestingHomeScreen>
     bool isLeaderExclusiveAction = false;
 
     if (op.status == 'planned') {
-      buttonLabel = '1. تأكيد إرسال الصناديق إلى المزرعة (Crates Dispatched)';
+      buttonLabel = '1. استلام الصناديق وتحديد العمال والتوقيع (Collect Boxes & Sign)';
       nextStatus = 'crates_dispatched';
       stepIcon = Icons.all_inbox_rounded;
+      isLeaderExclusiveAction = true;
     } else if (op.status == 'crates_dispatched') {
       buttonLabel = '2. انطلاق فريق الحصاد من المصنع (Team Dispatched)';
       nextStatus = 'team_dispatched';
       stepIcon = Icons.directions_bus_rounded;
+      isLeaderExclusiveAction = true;
     } else if (op.status == 'team_dispatched') {
       buttonLabel = '3. تم الوصول إلى المزرعة (Arrived at Farm)';
       nextStatus = 'at_farm';
       stepIcon = Icons.location_on_rounded;
+      isLeaderExclusiveAction = true;
     } else if (op.status == 'at_farm') {
-      buttonLabel = '4. ⏱️ بدء القطاف الفعلي وتشغيل العداد وتحديد الموقع (Start Harvesting)';
+      buttonLabel = '4. ⏱️ بدء القطاف الفعلي وتشغيل العداد وتوثيق الموقع (Start Harvesting)';
       nextStatus = 'harvesting_in_progress';
       stepIcon = Icons.play_arrow_rounded;
       isLeaderExclusiveAction = true;
     } else if (op.status == 'harvesting_in_progress' || op.status == 'loads_dispatched') {
-      buttonLabel = '5. ⏹️ إنهاء أعمال القطاف وإيقاف العداد (End Harvesting)';
+      buttonLabel = '5. ⏹️ إنهاء أعمال القطاف وفحص الموقع (1km Radius Check & End)';
       nextStatus = 'harvesting_completed';
       stepIcon = Icons.stop_circle_rounded;
       isLeaderExclusiveAction = true;
@@ -1207,13 +1211,14 @@ class _HarvestingHomeScreenState extends State<HarvestingHomeScreen>
       buttonLabel = '6. مغادرة المزرعة باتجاه مركز تمور علي (Leave Farm)';
       nextStatus = 'in_transit';
       stepIcon = Icons.local_shipping_rounded;
+      isLeaderExclusiveAction = true;
     } else if (op.status == 'in_transit') {
-      buttonLabel = '7. وصول الفريق والمحصول إلى المصنع (Returned to Facility)';
+      buttonLabel = '7. تسليم المحصول للمصنع والوزن (Handover to Factory Receiving)';
       nextStatus = 'returned_to_facility';
       stepIcon = Icons.warehouse_rounded;
     }
 
-    final canClick = !isLeaderExclusiveAction || isLaborLeader || isGeneralSupervisor;
+    final canClick = !isLeaderExclusiveAction || isHarvestSupervisor || isGeneralSupervisor;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1233,8 +1238,8 @@ class _HarvestingHomeScreenState extends State<HarvestingHomeScreen>
                   const Icon(Icons.info_outline_rounded, color: Color(0xFFD97706), size: 22),
                   const SizedBox(width: 8),
                   Text(
-                    'المرحلة الحالية: ${op.statusAr}',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF92400E)),
+                    'المرحلة: ${op.statusAr}',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: Color(0xFF92400E)),
                   ),
                 ],
               ),
@@ -1262,9 +1267,16 @@ class _HarvestingHomeScreenState extends State<HarvestingHomeScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            'المشرف: ${op.supervisorName} | رئيس العمال: ${op.laborTeamLeaderName} (${op.actualWorkers} عامل)',
-            style: const TextStyle(fontSize: 12, color: AppColors.navyDark),
+            'المشرف المعين للحصاد: ${op.supervisorName} (${op.actualWorkers} عمال - ${op.collectedBoxesCount > 0 ? op.collectedBoxesCount : op.plannedCrates} صندوق)',
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.navyDark),
           ),
+          if (op.workerNames.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              'أسماء العمال: ${op.workerNames.join("، ")}',
+              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+            ),
+          ],
           if (op.startLatitude != null) ...[
             const SizedBox(height: 6),
             Row(
@@ -1273,14 +1285,14 @@ class _HarvestingHomeScreenState extends State<HarvestingHomeScreen>
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
-                    'موقع الحقل: ${op.startLocationName ?? "المزرعة"} (N: ${op.startLatitude?.toStringAsFixed(4)}, E: ${op.startLongitude?.toStringAsFixed(4)})',
+                    'موقع بدء الحصاد: ${op.startLocationName ?? "الحقل"} (N: ${op.startLatitude?.toStringAsFixed(4)}, E: ${op.startLongitude?.toStringAsFixed(4)})',
                     style: const TextStyle(fontSize: 11, color: Color(0xFF0F766E), fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
             ),
           ],
-          if (isLeaderExclusiveAction && !isLaborLeader && !isGeneralSupervisor) ...[
+          if (isLeaderExclusiveAction && !isHarvestSupervisor && !isGeneralSupervisor) ...[
             const SizedBox(height: 10),
             Container(
               padding: const EdgeInsets.all(8),
@@ -1295,7 +1307,7 @@ class _HarvestingHomeScreenState extends State<HarvestingHomeScreen>
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      '🔒 زر تشغيل / إنهاء العداد مخصص حصرياً لرئيس العمال المعين (${op.laborTeamLeaderName})',
+                      '🔒 هذه الخطوة مخصصة حصرياً لمشرف الحصاد المعين (${op.supervisorName})',
                       style: const TextStyle(fontSize: 11, color: Color(0xFF991B1B), fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -1318,23 +1330,285 @@ class _HarvestingHomeScreenState extends State<HarvestingHomeScreen>
               ),
               onPressed: canClick
                   ? () async {
-                      await SupabaseService().advancePickingLifecycle(
-                        operationId: op.id,
-                        newStatus: nextStatus,
-                      );
-                      setSheetState(() {});
-                      setState(() {});
+                      if (op.status == 'planned') {
+                        // Step 1: Open Box Collection & Dual Signature Dialog
+                        _openBoxCollectionAndSignDialog(op, setSheetState);
+                      } else if (op.status == 'at_farm') {
+                        // Step 4: Start Harvesting (GPS Capture + Live Timer + Admin Alerts)
+                        await service.advancePickingLifecycle(
+                          operationId: op.id,
+                          newStatus: 'harvesting_in_progress',
+                          latitude: 31.8560, // Field GPS
+                          longitude: 35.5450,
+                          locationName: '${op.farmName} (${op.landName})',
+                        );
+                        setSheetState(() {});
+                        setState(() {});
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('🌴 تم بدء الحصاد وتشغيل العداد وإشعار الإدارة فوراً.'),
+                            backgroundColor: AppColors.success,
+                          ),
+                        );
+                      } else if (op.status == 'harvesting_in_progress' || op.status == 'loads_dispatched') {
+                        // Step 5: Check 1km Radius Geofence before allowing End Harvesting
+                        _handleEndHarvestingWithGeofence(op, setSheetState);
+                      } else {
+                        await service.advancePickingLifecycle(
+                          operationId: op.id,
+                          newStatus: nextStatus,
+                        );
+                        setSheetState(() {});
+                        setState(() {});
+                      }
                     }
                   : () {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('⚠️ فقط رئيس العمال (${op.laborTeamLeaderName}) أو المشرف العام مخول ببدء/إيقاف عداد الحصاد والموقع'),
+                          content: Text('⚠️ فقط مشرف الحصاد (${op.supervisorName}) أو الإدارة مخول بمتابعة خطوات الحصاد'),
                           backgroundColor: AppColors.warning,
                         ),
                       );
                     },
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  void _openBoxCollectionAndSignDialog(PickingOperationModel op, StateSetter setSheetState) {
+    final boxesCtrl = TextEditingController(text: '${op.plannedCrates}');
+    final workersCtrl = TextEditingController(text: '${op.actualWorkers}');
+    final workerNamesCtrl = TextEditingController(text: op.workerNames.join('، '));
+    String? issuerSig;
+    String? receiverSig;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          title: const Row(
+            children: [
+              Icon(Icons.inventory_2_rounded, color: AppColors.navy),
+              SizedBox(width: 8),
+              Text('استلام الصناديق وتسجيل العمال والتواقيع', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.navy)),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('المزرعة: ${op.farmName} - قطعة ${op.landName}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.navy)),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: boxesCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'عدد الصناديق المستلمة فعلياً *',
+                    prefixIcon: Icon(Icons.all_inbox_rounded),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: workersCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'عدد العمال المرافقين *',
+                    prefixIcon: Icon(Icons.people_alt_rounded),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: workerNamesCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'أسماء العمال (اختياري - مفصولة بفواصل)',
+                    hintText: 'مثال: أحمد، محمود، سامر',
+                    prefixIcon: Icon(Icons.badge_rounded),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // 1. Issuer Signature (توقيع من سلّم الصناديق)
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFCBD5E1)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('توقيع مسلّم الصناديق (المستودع):', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.navy)),
+                          Text(issuerSig != null ? '✅ تم التوقيع الإلكتروني' : 'بانتظار التوقيع', style: TextStyle(fontSize: 10.5, color: issuerSig != null ? AppColors.success : AppColors.error)),
+                        ],
+                      ),
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.draw_rounded, size: 14),
+                        label: const Text('توقيع المسلّم', style: TextStyle(fontSize: 11)),
+                        onPressed: () async {
+                          final sig = await SignatureDialog.show(
+                            context,
+                            title: 'توقيع أمين مستودع الصناديق',
+                            signerRole: 'مسؤول صرف الصناديق',
+                          );
+                          if (sig != null) {
+                            setDialogState(() => issuerSig = 'SIGNED_ISSUER');
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                // 2. Receiver Signature (توقيع المشرف المستلم)
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFCBD5E1)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('توقيع المستلم (${op.supervisorName}):', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.navy)),
+                          Text(receiverSig != null ? '✅ تم التوقيع الإلكتروني' : 'بانتظار التوقيع', style: TextStyle(fontSize: 10.5, color: receiverSig != null ? AppColors.success : AppColors.error)),
+                        ],
+                      ),
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.draw_rounded, size: 14),
+                        label: const Text('توقيع المستلم', style: TextStyle(fontSize: 11)),
+                        onPressed: () async {
+                          final sig = await SignatureDialog.show(
+                            context,
+                            title: 'توقيع مشرف الحصاد المستلم',
+                            signerRole: op.supervisorName,
+                          );
+                          if (sig != null) {
+                            setDialogState(() => receiverSig = 'SIGNED_RECEIVER');
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            OutlinedButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('إلغاء')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.navy),
+              onPressed: () async {
+                final bCount = int.tryParse(boxesCtrl.text.trim()) ?? op.plannedCrates;
+                final wCount = int.tryParse(workersCtrl.text.trim()) ?? op.actualWorkers;
+                final wNames = workerNamesCtrl.text.trim().isNotEmpty
+                    ? workerNamesCtrl.text.trim().split(RegExp(r'[,،]')).map((s) => s.trim()).where((s) => s.isNotEmpty).toList()
+                    : <String>[];
+
+                await SupabaseService().advancePickingLifecycle(
+                  operationId: op.id,
+                  newStatus: 'crates_dispatched',
+                  actualWorkers: wCount,
+                  workerNames: wNames,
+                  collectedBoxes: bCount,
+                  issuerSignature: issuerSig ?? 'توقيع معتمد',
+                  receiverSignature: receiverSig ?? 'توقيع معتمد',
+                );
+
+                if (mounted) {
+                  Navigator.of(ctx).pop();
+                  setSheetState(() {});
+                  setState(() {});
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('✅ تم توثيق استلام ($bCount) صندوق مع التواقيع وتجهيز الفريق للانطلاق'),
+                      backgroundColor: AppColors.success,
+                    ),
+                  );
+                }
+              },
+              child: const Text('تأكيد الاستلام والتواقيع', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _handleEndHarvestingWithGeofence(PickingOperationModel op, StateSetter setSheetState) {
+    final isWithin1Km = op.isWithin1KmOfStart;
+
+    if (!isWithin1Km) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('⚠️ تنبيه: الموقع الجغرافي الحالي يبعد أكثر من 1 كم عن نقطة بدء الحصاد!'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle_rounded, color: AppColors.success),
+            SizedBox(width: 8),
+            Text('تأكيد إنهاء الحصاد الميداني', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.navy)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('تم التحقق من الموقع الجغرافي: أنت ضمن نطاق الـ 1 كم المعتمد لمزرعة (${op.farmName}).', style: const TextStyle(fontSize: 12.5, color: AppColors.navy, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Text('المدة المستغرقة: ${op.formattedDuration}', style: const TextStyle(fontSize: 12, color: Color(0xFFD97706), fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            const Text('سيتم إيقاف العداد فوراً وتنبيه الإدارة (خالد، حسام، علي، عثمان) باكتمال الحصاد.', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+          ],
+        ),
+        actions: [
+          OutlinedButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('إلغاء')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
+            onPressed: () async {
+              await SupabaseService().advancePickingLifecycle(
+                operationId: op.id,
+                newStatus: 'harvesting_completed',
+                latitude: op.startLatitude ?? 31.8560,
+                longitude: op.startLongitude ?? 35.5450,
+                locationName: op.startLocationName ?? '${op.farmName} (${op.landName})',
+              );
+              if (mounted) {
+                Navigator.of(ctx).pop();
+                setSheetState(() {});
+                setState(() {});
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('🏁 تم إنهاء الحصاد وإيقاف العداد وإرسال الإشعار للإدارة بنجاح'),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              }
+            },
+            child: const Text('إنهاء الحصاد وإيقاف العداد', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
         ],
       ),
     );

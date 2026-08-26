@@ -37,11 +37,13 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
     if (user == null) return;
 
     final myOps = service.pickingOperations.where((op) {
-      final isNameMatch = op.laborTeamLeaderName.trim().isNotEmpty &&
+      final isSupervisorMatch = op.supervisorName.trim().isNotEmpty &&
+          user.name.toLowerCase().contains(op.supervisorName.toLowerCase());
+      final isLeaderMatch = op.laborTeamLeaderName.trim().isNotEmpty &&
           user.name.toLowerCase().contains(op.laborTeamLeaderName.toLowerCase());
       final isPhoneMatch = op.laborTeamLeaderPhone != null &&
           PhoneUtils.areEqual(op.laborTeamLeaderPhone!, user.phone);
-      return (isNameMatch || isPhoneMatch) && op.status != 'settled';
+      return (isSupervisorMatch || isLeaderMatch || isPhoneMatch) && op.status != 'settled';
     }).toList();
 
     if (myOps.isNotEmpty && mounted) {
@@ -50,20 +52,20 @@ class _EmployeeHomeScreenState extends State<EmployeeHomeScreen> {
         SnackBar(
           content: Row(
             children: [
-              const Icon(Icons.groups_rounded, color: Colors.white),
+              const Icon(Icons.agriculture_rounded, color: Colors.white),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  '👥 تنبيه: تم تكليفك كرئيس عمال لعملية الحصاد (${latest.code}) بمزرعة (${latest.farmName})',
+                  '🌴 أنت مكلف بالحصاد اليوم في مزرعة (${latest.farmName} - قطعة ${latest.landName}) بإشراف (${latest.supervisorName})',
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
                 ),
               ),
             ],
           ),
           backgroundColor: const Color(0xFFD97706),
-          duration: const Duration(seconds: 5),
+          duration: const Duration(seconds: 7),
           action: SnackBarAction(
-            label: 'عرض الحصاد',
+            label: 'فتح الحصاد',
             textColor: Colors.white,
             onPressed: () {
               Navigator.of(context).push(

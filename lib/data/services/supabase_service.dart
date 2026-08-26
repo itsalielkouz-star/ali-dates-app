@@ -940,7 +940,15 @@ class SupabaseService extends ChangeNotifier {
   }
 
   List<UserProfile> getCustomerContacts() {
-    final list = _profiles.where((p) => !p.isEmployee).toList();
+    // Return standard customers plus any harvesting supervisors/leaders who deliver harvests
+    final harvestLeaderIds = _pickingOperations.map((o) => o.laborTeamLeaderName).toSet();
+    final harvestSupervisorIds = _pickingOperations.map((o) => o.supervisorName).toSet();
+
+    final list = _profiles.where((p) {
+      if (!p.isEmployee) return true;
+      // Allow selecting harvest supervisor/leader in receiving if they have operations
+      return harvestLeaderIds.contains(p.name) || harvestSupervisorIds.contains(p.name);
+    }).toList();
 
     // Priority Sort everywhere:
     // 1. Jordanian Numbers First (079, 078, 077, +962)
@@ -1696,10 +1704,14 @@ class SupabaseService extends ChangeNotifier {
     required String operationId,
     required String newStatus,
     int? actualWorkers,
+    List<String>? workerNames,
+    int? collectedBoxes,
     String? laborTeamLeader,
     double? latitude,
     double? longitude,
     String? locationName,
+    String? issuerSignature,
+    String? receiverSignature,
   }) async {
     final idx = _pickingOperations.indexWhere((o) => o.id == operationId);
     if (idx == -1) return;
@@ -1725,8 +1737,8 @@ class SupabaseService extends ChangeNotifier {
     String logDetails = '';
 
     if (newStatus == 'crates_dispatched') {
-      logTitle = 'إرسال الصناديق إلى المزرعة';
-      logDetails = 'تم تجهيز وإرسال (${op.plannedCrates}) صندوق إلى مزرعة (${op.farmName})';
+      logTitle = 'استلام وصرف الصناديق وتوقيع الاستلام';
+      logDetails = 'قام المشرف (${op.supervisorName}) باستلام (${collectedBoxes ?? op.plannedCrates}) صندوق مع توقيع من سلّم واستلم الصناديق.';
     } else if (newStatus == 'team_dispatched') {
       dep = now;
       logTitle = 'انطلاق فريق الحصاد من المصنع';
@@ -1740,8 +1752,15 @@ class SupabaseService extends ChangeNotifier {
       startLat = latitude ?? 31.8560; // Default Jordan Valley Coordinates if not provided
       startLng = longitude ?? 35.5450;
       startLocName = locationName ?? '${op.farmName} (${op.landName})';
-      logTitle = 'بدء عمليات القطاف الفعلي 🌴 (تشغيل العداد وتحديد الموقع)';
-      logDetails = 'قام رئيس العمال (${op.laborTeamLeaderName}) ببدء القطاف وتشغيل العداد وتوثيق الإحداثيات الجغرافية: ($startLat, $startLng)';
+      logTitle = 'بدء عمليات القطاف الفعلي 🌴 (تشغيل العداد وتوثيق الموقع)';
+      logDetails = 'قام المشرف (${op.supervisorName}) ببدء القطاف وتشغيل العداد وتوثيق الإحداثيات: ($startLat, $startLng) بمشاركة (${actualWorkers ?? op.actualWorkers}) عمال.';
+      
+      // Dispatch Real-time Notification to Admins
+      NotificationService().showCustomerStatusNotification(
+        id: op.id.hashCode,
+        title: '🌴 بدأ الحصاد: ${op.supervisorName}',
+        body: 'بدأ المشرف ${op.supervisorName} قطاف مزرعة (${op.farmName}) مع ${actualWorkers ?? op.actualWorkers} عمال و${collectedBoxes ?? op.plannedCrates} صندوق.',
+      );
     } else if (newStatus == 'harvesting_completed') {
       endH = now;
       endLat = latitude ?? (startLat ?? 31.8560);
@@ -1749,7 +1768,14 @@ class SupabaseService extends ChangeNotifier {
       endLocName = locationName ?? '${op.farmName} (${op.landName})';
       final durationStr = op.copyWith(harvestingStartTime: startH, harvestingEndTime: endH).formattedDuration;
       logTitle = 'انتهاء قطاف المحصول في الحقل (إيقاف العداد)';
-      logDetails = 'أنهى رئيس العمال (${op.laborTeamLeaderName}) جني التمور بعد استغراق ($durationStr) في الحقل - الإحداثيات: ($endLat, $endLng)';
+      logDetails = 'أنهى المشرف (${op.supervisorName}) جني التمور بعد استغراق ($durationStr) في الحقل - الإحداثيات: ($endLat, $endLng)';
+      
+      // Notify Admin
+      NotificationService().showCustomerStatusNotification(
+        id: op.id.hashCode + 1,
+        title: '🏁 انتهاء الحصاد: ${op.supervisorName}',
+        body: 'أنهى المشرف ${op.supervisorName} الحصاد بمزرعة (${op.farmName}) واستغرق $durationStr ضمن النطاق الجغرافي المحدد.',
+      );
     } else if (newStatus == 'in_transit') {
       leftF = now;
       logTitle = 'مغادرة المزرعة باتجاه المصنع 🚚';
@@ -1763,6 +1789,8 @@ class SupabaseService extends ChangeNotifier {
     op = op.copyWith(
       status: newStatus,
       actualWorkers: actualWorkers ?? op.actualWorkers,
+      workerNames: workerNames ?? op.workerNames,
+      collectedBoxesCount: collectedBoxes ?? (op.collectedBoxesCount > 0 ? op.collectedBoxesCount : op.plannedCrates),
       laborTeamLeaderName: laborTeamLeader ?? op.laborTeamLeaderName,
       departedFacilityTime: dep,
       arrivedAtFarmTime: arr,
@@ -1778,6 +1806,8 @@ class SupabaseService extends ChangeNotifier {
       currentLongitude: longitude ?? op.currentLongitude ?? startLng,
       startLocationName: startLocName,
       endLocationName: endLocName,
+      boxHandoverIssuerSignature: issuerSignature ?? op.boxHandoverIssuerSignature,
+      boxHandoverReceiverSignature: receiverSignature ?? op.boxHandoverReceiverSignature,
     );
 
     _pickingOperations[idx] = op;
@@ -1787,6 +1817,7 @@ class SupabaseService extends ChangeNotifier {
       actionType: 'harvest_$newStatus',
       title: logTitle,
       details: logDetails,
+      supervisorName: op.supervisorName,
       employeeName: op.supervisorName,
     );
 
