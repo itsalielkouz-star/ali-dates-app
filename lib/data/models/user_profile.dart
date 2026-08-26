@@ -34,6 +34,18 @@ class UserProfile {
         lower.contains('عثمان');
   }
 
+  /// Only Khaled Elkouz and Othman Adarbeh are General Supervisors (المشرف العام)
+  bool get isGeneralSupervisor {
+    final lower = name.toLowerCase().trim();
+    final cleanP = phone.replaceAll(RegExp(r'[^0-9]'), '');
+    return lower.contains('khaled') ||
+        lower.contains('خالد') ||
+        lower.contains('othman') ||
+        lower.contains('عثمان') ||
+        cleanP.contains('798997449') ||
+        cleanP.contains('796611533');
+  }
+
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
       id: json['id']?.toString() ?? '',

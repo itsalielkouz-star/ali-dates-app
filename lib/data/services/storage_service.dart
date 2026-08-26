@@ -116,8 +116,9 @@ class StorageService {
   }
 
   // --- Cached Activity Logs ---
-  static const String _keyActivityLogs = 'cached_activity_logs';
   static const String _keyShiftSupervisor = 'shift_supervisor_name';
+  static const String _keyPreSortSupervisor = 'shift_supervisor_presort';
+  static const String _keyAutoSortSupervisor = 'shift_supervisor_autosort';
 
   static Future<void> cacheActivityLogs(List<dynamic> logs) async {
     final list = logs.map((l) => l.toJson()).toList();
@@ -141,6 +142,22 @@ class StorageService {
 
   static String getShiftSupervisor() {
     return prefs.getString(_keyShiftSupervisor) ?? 'خالد الكوز (المشرف العام)';
+  }
+
+  static Future<void> savePreSortShiftSupervisor(String name) async {
+    await prefs.setString(_keyPreSortSupervisor, name);
+  }
+
+  static String getPreSortShiftSupervisor() {
+    return prefs.getString(_keyPreSortSupervisor) ?? 'عثمان ابراهيم عداربة (مسؤول الفرز الأولي)';
+  }
+
+  static Future<void> saveAutoSortShiftSupervisor(String name) async {
+    await prefs.setString(_keyAutoSortSupervisor, name);
+  }
+
+  static String getAutoSortShiftSupervisor() {
+    return prefs.getString(_keyAutoSortSupervisor) ?? 'خالد الكوز (مسؤول الفرز الآلي)';
   }
 
   // --- Cached Picking / Harvesting Operations ---

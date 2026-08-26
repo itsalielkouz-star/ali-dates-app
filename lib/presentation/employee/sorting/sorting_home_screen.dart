@@ -451,35 +451,71 @@ class _SortingHomeScreenState extends State<SortingHomeScreen> with SingleTicker
     final totalOutput = batches.fold<double>(0.0, (s, b) {
       return s + b.outputPallets.fold<double>(0.0, (sub, o) => sub + o.weight);
     });
+    final service = SupabaseService();
+    final currentSupervisor = isAuto ? service.autoSortShiftSupervisor : service.preSortShiftSupervisor;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       color: AppColors.navyUltraLight,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Icon(Icons.layers_rounded, color: AppColors.navy, size: 18),
-              const SizedBox(width: 6),
-              Text(
-                'الطبالي المدخلة: ${batches.length}',
-                style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.navy, fontSize: 13),
+              Row(
+                children: [
+                  const Icon(Icons.layers_rounded, color: AppColors.navy, size: 18),
+                  const SizedBox(width: 6),
+                  Text(
+                    'الطبالي المدخلة: ${batches.length}',
+                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.navy, fontSize: 13),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  Text(
+                    'المدخل: ${totalInput.toStringAsFixed(1)} كغ',
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.navy),
+                  ),
+                  const Text('  |  ', style: TextStyle(color: Colors.black26)),
+                  Text(
+                    'المنجز: ${totalOutput.toStringAsFixed(1)} كغ',
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.success),
+                  ),
+                ],
               ),
             ],
           ),
-          Row(
-            children: [
-              Text(
-                'إجمالي المدخل: ${totalInput.toStringAsFixed(1)} كغ',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.navy),
+          const SizedBox(height: 4),
+          InkWell(
+            onTap: _openShiftSupervisorModal,
+            borderRadius: BorderRadius.circular(6),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: AppColors.dateGold.withAlpha(120)),
               ),
-              const Text('  |  ', style: TextStyle(color: Colors.black26)),
-              Text(
-                'المنجز: ${totalOutput.toStringAsFixed(1)} كغ',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.success),
+              child: Row(
+                children: [
+                  const Icon(Icons.shield_rounded, color: AppColors.dateGold, size: 14),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'مسؤول الشفت (${isAuto ? "الفرز الآلي" : "الفرز الأولي"}): $currentSupervisor',
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.navy),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const Text(
+                    'تعديل / تعيين ❯',
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.dateGold),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ],
       ),
@@ -1848,11 +1884,15 @@ class _SortingHomeScreenState extends State<SortingHomeScreen> with SingleTicker
       if (proceedWaste != true) return;
     }
 
-    // Digital Signature
+    // Digital Signature with designated Shift Supervisor
+    final service = SupabaseService();
+    final activeSupervisor = isAuto ? service.autoSortShiftSupervisor : service.preSortShiftSupervisor;
+    final lineTitle = isAuto ? 'مسؤول شفت الفرز الآلي' : 'مسؤول شفت الفرز الأولي';
+
     final signatureBytes = await SignatureDialog.show(
       context,
-      title: 'توقيع تقرير نتائج الفرز',
-      signerRole: 'مسؤول خط الفرز والإنتاج',
+      title: 'توقيع تقرير نتائج الفرز ($lineTitle)',
+      signerRole: '$lineTitle: $activeSupervisor',
     );
 
     if (signatureBytes == null) {
@@ -2256,8 +2296,19 @@ class _SortingHomeScreenState extends State<SortingHomeScreen> with SingleTicker
   void _openShiftSupervisorModal() {
     final service = SupabaseService();
     final employees = service.profiles.where((p) => p.isEmployee).toList();
-    final currentSupervisor = service.shiftSupervisor;
+    final isAuto = _tabController.index == 1;
+    final currentSupervisor = isAuto ? service.autoSortShiftSupervisor : service.preSortShiftSupervisor;
+    final lineName = isAuto ? 'الفرز الآلي الحديث' : 'الفرز الأولي اليدوي';
+    final lineTheme = isAuto ? const Color(0xFF1565C0) : const Color(0xFFD84315);
+    final lineSoftBg = isAuto ? const Color(0xFFE3F2FD) : const Color(0xFFFFE0B2);
+
+    final currentUser = service.currentUser;
+    final isGeneralSupervisor = currentUser != null && currentUser.isGeneralSupervisor;
+
     String selectedSupervisor = currentSupervisor;
+    String selectedGeneralSupervisor = (currentUser != null && currentUser.isGeneralSupervisor)
+        ? currentUser.name
+        : 'خالد الكوز (المشرف العام)';
 
     showDialog(
       context: context,
@@ -2266,7 +2317,7 @@ class _SortingHomeScreenState extends State<SortingHomeScreen> with SingleTicker
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           child: Container(
             padding: const EdgeInsets.all(20),
-            constraints: const BoxConstraints(maxWidth: 450),
+            constraints: const BoxConstraints(maxWidth: 480),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2276,71 +2327,156 @@ class _SortingHomeScreenState extends State<SortingHomeScreen> with SingleTicker
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColors.navyUltraLight,
+                        color: lineSoftBg,
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.shield_rounded, color: AppColors.dateGold, size: 24),
+                      child: Icon(Icons.shield_rounded, color: lineTheme, size: 24),
                     ),
                     const SizedBox(width: 10),
-                    const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'مسؤول الشفت لخطوط الفرز',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.navy),
-                        ),
-                        Text(
-                          'تحديد المشرف المسؤول عن هذه الوردية والعمليات',
-                          style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                        ),
-                      ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'مسؤول شفت $lineName',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.navy),
+                          ),
+                          const Text(
+                            'التعيين والتفويض حصراً من المشرفين العامين',
+                            style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
+
+                // General Supervisor Notice / Authorized Card
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF3C7),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFF59E0B)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.verified_user_rounded, color: Color(0xFFB45309), size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'المشرفون العامون المخولون بتعيين مسؤولي الشفتات:\n• خالد الكوز  |  • عثمان ابراهيم عداربة',
+                          style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF78350F), height: 1.3),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // Current Shift Supervisor Display
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.navyUltraLight,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.navy.withAlpha(40)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('المشرف المعين حالياً على $lineName:', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                          const SizedBox(height: 2),
+                          Text(
+                            currentSupervisor,
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: lineTheme),
+                          ),
+                        ],
+                      ),
+                      Icon(Icons.badge_rounded, color: lineTheme, size: 22),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // 1. Authorizing General Supervisor Selector
+                DropdownButtonFormField<String>(
+                  value: selectedGeneralSupervisor,
+                  decoration: const InputDecoration(
+                    labelText: 'المشرف العام المسؤول عن التعيين *',
+                    prefixIcon: Icon(Icons.admin_panel_settings_rounded, color: Color(0xFFB45309)),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'خالد الكوز (المشرف العام)', child: Text('خالد الكوز (المشرف العام)', style: TextStyle(fontWeight: FontWeight.bold))),
+                    DropdownMenuItem(value: 'عثمان ابراهيم عداربة (المشرف العام)', child: Text('عثمان ابراهيم عداربة (المشرف العام)', style: TextStyle(fontWeight: FontWeight.bold))),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setDialogState(() => selectedGeneralSupervisor = val);
+                  },
+                ),
+                const SizedBox(height: 12),
+
+                // 2. Shift Supervisor Selection
                 DropdownButtonFormField<String>(
                   value: employees.any((e) => e.name == selectedSupervisor) ? selectedSupervisor : null,
-                  decoration: const InputDecoration(
-                    labelText: 'اختر مسؤول الشفت *',
-                    prefixIcon: Icon(Icons.person_pin_rounded),
+                  decoration: InputDecoration(
+                    labelText: 'تعيين مسؤول شفت جديد لـ ($lineName) *',
+                    prefixIcon: const Icon(Icons.person_pin_rounded),
                   ),
                   hint: Text(selectedSupervisor),
                   items: [
                     ...employees.map((e) => DropdownMenuItem(value: e.name, child: Text(e.name))),
                     const DropdownMenuItem(value: 'خالد الكوز (المشرف العام)', child: Text('خالد الكوز (المشرف العام)')),
-                    const DropdownMenuItem(value: 'علي الكوز (المدير العام)', child: Text('علي الكوز (المدير العام)')),
+                    const DropdownMenuItem(value: 'عثمان ابراهيم عداربة (المشرف العام)', child: Text('عثمان ابراهيم عداربة (المشرف العام)')),
+                    const DropdownMenuItem(value: 'علي الشريف', child: Text('علي الشريف')),
                   ],
                   onChanged: (val) {
                     if (val != null) setDialogState(() => selectedSupervisor = val);
                   },
                 ),
                 const SizedBox(height: 20),
+
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => Navigator.of(ctx).pop(),
-                        child: const Text('إلغاء', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.navy)),
+                        child: const Text('إغلاق', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.navy)),
                       ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.navy),
+                      flex: 2,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: lineTheme,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+                        label: Text('اعتماد مسؤول شفت $lineName', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
                         onPressed: () async {
-                          await service.setShiftSupervisor(selectedSupervisor);
+                          await service.setSortingShiftSupervisor(
+                            sortingType: _currentSortingType,
+                            supervisorName: selectedSupervisor,
+                            assignedBy: selectedGeneralSupervisor,
+                          );
                           if (mounted) {
                             setState(() {});
                             Navigator.of(ctx).pop();
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('✅ تم تعيين مسؤول الشفت: $selectedSupervisor وبدء الوردية'),
+                                content: Text('✅ تم تعيين ($selectedSupervisor) مسؤولاً عن شفت $lineName بواسطة $selectedGeneralSupervisor'),
                                 backgroundColor: AppColors.success,
                               ),
                             );
                           }
                         },
-                        child: const Text('حفظ وبدء الوردية', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
                       ),
                     ),
                   ],

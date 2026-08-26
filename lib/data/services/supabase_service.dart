@@ -54,10 +54,14 @@ class SupabaseService extends ChangeNotifier {
   List<ActivityLogModel> _activityLogs = [];
   List<PickingOperationModel> _pickingOperations = [];
   String _shiftSupervisor = 'خالد الكوز (المشرف العام)';
+  String _preSortShiftSupervisor = 'عثمان ابراهيم عداربة (مسؤول الفرز الأولي)';
+  String _autoSortShiftSupervisor = 'خالد الكوز (مسؤول الفرز الآلي)';
 
   List<ActivityLogModel> get activityLogs => List.unmodifiable(_activityLogs);
   List<PickingOperationModel> get pickingOperations => List.unmodifiable(_pickingOperations);
   String get shiftSupervisor => _shiftSupervisor;
+  String get preSortShiftSupervisor => _preSortShiftSupervisor;
+  String get autoSortShiftSupervisor => _autoSortShiftSupervisor;
 
   // Executive Dashboard State
   Map<String, int> _freezerCapacities = {
@@ -242,6 +246,8 @@ class SupabaseService extends ChangeNotifier {
     _freezerCapacities = StorageService.getFreezerCapacities();
     _totalCompanyBoxes = StorageService.getTotalCompanyBoxes();
     _shiftSupervisor = StorageService.getShiftSupervisor();
+    _preSortShiftSupervisor = StorageService.getPreSortShiftSupervisor();
+    _autoSortShiftSupervisor = StorageService.getAutoSortShiftSupervisor();
 
     final cachedLogs = StorageService.getCachedActivityLogs();
     _activityLogs = cachedLogs.map((e) => ActivityLogModel.fromJson(e)).toList();
@@ -523,6 +529,31 @@ class SupabaseService extends ChangeNotifier {
       actionType: 'shift_start',
       title: 'بدء وردية جديدة',
       details: 'تم بدء وردية العمل بإشراف مسؤول الشفت: $supervisorName',
+      supervisorName: supervisorName,
+    );
+    notifyListeners();
+  }
+
+  /// Update Shift Supervisor specifically for Pre-Sort or Auto-Sort
+  Future<void> setSortingShiftSupervisor({
+    required String sortingType,
+    required String supervisorName,
+    String? assignedBy,
+  }) async {
+    final assigner = assignedBy ?? 'خالد الكوز / عثمان عداربة (المشرف العام)';
+    if (sortingType == 'presort') {
+      _preSortShiftSupervisor = supervisorName;
+      await StorageService.savePreSortShiftSupervisor(supervisorName);
+    } else {
+      _autoSortShiftSupervisor = supervisorName;
+      await StorageService.saveAutoSortShiftSupervisor(supervisorName);
+    }
+
+    final lineName = sortingType == 'presort' ? 'الفرز الأولي اليدوي' : 'الفرز الآلي الحديث';
+    await logAction(
+      actionType: 'shift_start',
+      title: 'تعيين مسؤول شفت ($lineName)',
+      details: 'قام المشرف العام ($assigner) بتعيين ($supervisorName) مسؤولاً عن شفت خط $lineName',
       supervisorName: supervisorName,
     );
     notifyListeners();
