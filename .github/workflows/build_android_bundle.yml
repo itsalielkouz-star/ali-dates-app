@@ -1,4 +1,4 @@
-﻿name: Build Android App Bundle (.aab)
+name: Build Android App Bundle (.aab)
 
 on:
   push:
@@ -15,8 +15,11 @@ jobs:
     - name: Set up Java JDK
       uses: actions/setup-java@v4
       with:
-        distribution: 'zulu'
-        java-version: '17'
+        distribution: 'temurin'
+        java-version: '21'
+
+    - name: Set up Android SDK
+      uses: android-actions/setup-android@v3
 
     - name: Set up Flutter
       uses: subosito/flutter-action@v2
@@ -24,11 +27,14 @@ jobs:
         channel: 'stable'
         cache: true
 
+    - name: Accept Android Licenses
+      run: yes | sdkmanager --licenses || true
+
     - name: Get dependencies
       run: flutter pub get
 
     - name: Build App Bundle (.aab)
-      run: flutter build appbundle --release --no-tree-shake-icons
+      run: flutter build appbundle --release --no-tree-shake-icons -v
 
     - name: Upload .aab artifact
       uses: actions/upload-artifact@v4
